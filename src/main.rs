@@ -20,6 +20,10 @@ mod ui;
 use game::Game;
 
 fn window_conf() -> Conf {
+    // Hand-built Conf means no automatic arming: without this the capture run
+    // puts a full game window on the desktop for its whole duration.
+    capture::headless::arm("FRONTIER_KINGDOM");
+
     // Built by hand (not capture::capture_window_conf) to keep sample_count: 0
     // and the always-off high_dpi this game already shipped with.
     Conf {
