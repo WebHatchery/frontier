@@ -97,12 +97,14 @@ impl Game {
         macro_rules! load_textures {
             ($path:literal, $field:expr, $textures:expr) => {{
                 #[cfg(target_arch = "wasm32")]
-                let content = include_str!(concat!("../", $path));
+                let content = macroquad_toolkit::include_json_str!(concat!("../", $path));
 
                 #[cfg(not(target_arch = "wasm32"))]
                 let content = match std::fs::read_to_string($path) {
                     Ok(c) => c,
-                    Err(_) => include_str!(concat!("../", $path)).to_string(),
+                    Err(_) => {
+                        macroquad_toolkit::include_json_str!(concat!("../", $path)).to_string()
+                    }
                 };
 
                 parse_textures_from_json(&content, $field, $textures, asset_pack.as_ref()).await;
