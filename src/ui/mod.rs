@@ -1,9 +1,12 @@
 //! UI modules - immediate mode, stateless rendering with mouse support
 
+mod art;
+
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text;
 
 // Import toolkit utilities
+pub use art::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad_toolkit::input::{is_hovered_rect, was_clicked_rect, was_pressed_rect};
 pub use macroquad_toolkit::input::{is_mouse_over, was_clicked};
 

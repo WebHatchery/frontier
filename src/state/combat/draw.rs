@@ -8,37 +8,15 @@ use super::helpers::{
 use super::CombatState;
 use crate::combat::{Card, Unit};
 use crate::kingdom::ResolveState;
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 impl CombatState {
     pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
-        let region_id = if let Some(ctx) = &self.return_mission {
-            &ctx.mission.region_id
-        } else {
-            "dark_woods"
-        };
-
-        let bg_path = format!("assets/images/regions/{}.png", region_id);
-        if let Some(tex) = textures.get(&bg_path) {
-            draw_texture_ex(
-                tex,
-                0.0,
-                0.0,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(screen_width(), screen_height())),
-                    ..Default::default()
-                },
-            );
-        } else {
-            clear_background(Color::from_rgba(9, 7, 6, 255));
-        }
-        draw_rectangle(
-            0.0,
-            0.0,
-            screen_width(),
-            screen_height(),
+        draw_background(
+            textures,
+            BackgroundArt::CombatArena,
             Color::from_rgba(0, 0, 0, 178),
         );
 
@@ -230,9 +208,17 @@ fn draw_enemy_stage(enemy: &Unit, textures: &std::collections::HashMap<String, T
         crate::combat::EnemyIntent::Debuff => mystery_color(),
         crate::combat::EnemyIntent::Unknown => muted_text_color(),
     };
+    let intent_icon = match &enemy.intent {
+        crate::combat::EnemyIntent::Attack(_) => SpriteIcon::Attack,
+        crate::combat::EnemyIntent::Block(_) => SpriteIcon::Guard,
+        crate::combat::EnemyIntent::Buff => SpriteIcon::Vitality,
+        crate::combat::EnemyIntent::Debuff => SpriteIcon::Event,
+        crate::combat::EnemyIntent::Unknown => SpriteIcon::Danger,
+    };
     draw_rectangle(720.0, 144.0, 196.0, 86.0, Color::from_rgba(22, 18, 16, 220));
     draw_rectangle_lines(720.0, 144.0, 196.0, 86.0, 1.0, intent_color);
-    draw_ui_text("NEXT", 740.0, 172.0, 16.0, muted_text_color());
+    draw_icon(textures, intent_icon, 734.0, 153.0, 30.0, WHITE);
+    draw_ui_text("NEXT", 772.0, 172.0, 16.0, muted_text_color());
     draw_wrapped_text(&intent, 740.0, 202.0, 156.0, 20.0, intent_color);
 
     if !enemy.statuses.is_empty() {
@@ -352,6 +338,24 @@ fn draw_combat_card(
         13.0,
         muted_text_color(),
     );
+    let card_icon = if card.is_attack() {
+        SpriteIcon::Attack
+    } else if card
+        .effects
+        .iter()
+        .any(|effect| matches!(effect, crate::combat::CardEffect::Block(_)))
+    {
+        SpriteIcon::Guard
+    } else if card
+        .effects
+        .iter()
+        .any(|effect| matches!(effect, crate::combat::CardEffect::Heal(_)))
+    {
+        SpriteIcon::Vitality
+    } else {
+        SpriteIcon::Event
+    };
+    draw_icon(textures, card_icon, x + w - 34.0, y + 7.0, 26.0, WHITE);
 
     let art_x = x + 8.0;
     let art_y = y + 38.0;

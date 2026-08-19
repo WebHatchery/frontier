@@ -151,6 +151,28 @@ impl Game {
             }
         }
 
+        // Sprite-backed scene art shared by every top-level screen.
+        let background_images = [
+            "base_command",
+            "recruit_hall",
+            "mission_board",
+            "expedition_route",
+            "event_shrine",
+            "combat_arena",
+            "results_aftermath",
+        ];
+        for name in background_images {
+            let path = format!("assets/images/backgrounds/{}.png", name);
+            if let Some(tex) = load_tex(asset_pack.as_ref(), &path).await {
+                textures.insert(path, tex);
+            }
+        }
+
+        let icon_path = "assets/images/ui/frontier_icons.png";
+        if let Some(tex) = load_tex(asset_pack.as_ref(), icon_path).await {
+            textures.insert(icon_path.to_string(), tex);
+        }
+
         Self {
             state: GameState::default(),
             kingdom,
@@ -243,6 +265,18 @@ impl Game {
     pub fn begin_capture_scene(&mut self, scene: &str) {
         match scene {
             "recruit" => self.state = GameState::Recruit(RecruitState::new()),
+            "mission" => self.state = GameState::Mission(MissionState::default()),
+            "combat" => self.state = GameState::Combat(CombatState::default()),
+            "event" => {
+                self.state = GameState::Event(EventState::new(
+                    crate::missions::events::Event::ancient_marker(),
+                    "capture-adventurer".to_string(),
+                    "Capture Adventurer".to_string(),
+                ));
+            }
+            "results" => {
+                self.state = GameState::Results(ResultState::victory_for("capture-adventurer"));
+            }
             "missions" => {
                 let party = self
                     .roster

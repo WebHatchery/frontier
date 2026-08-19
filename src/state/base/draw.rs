@@ -29,7 +29,7 @@ impl BaseState {
             self.draw_party_formation(roster);
         } else {
             match self.active_tab {
-                BaseTab::Kingdom => self.draw_kingdom_dashboard(kingdom, roster),
+                BaseTab::Kingdom => self.draw_kingdom_dashboard(kingdom, roster, textures),
                 BaseTab::Roster => self.draw_roster_tab(kingdom, roster),
                 BaseTab::Missions => self.draw_missions_tab(kingdom, roster),
                 BaseTab::Buildings => self.draw_buildings_tab(kingdom),
@@ -49,14 +49,19 @@ impl BaseState {
         draw_shortcuts();
     }
 
-    fn draw_kingdom_dashboard(&self, kingdom: &KingdomState, roster: &Roster) {
+    fn draw_kingdom_dashboard(
+        &self,
+        kingdom: &KingdomState,
+        roster: &Roster,
+        textures: &std::collections::HashMap<String, Texture2D>,
+    ) {
         let w = screen_width();
         let left_w = 220.0;
         let center_w = (w - 96.0) * 0.48;
         let right_x = SIDE_PAD + left_w + center_w + 24.0;
         let right_w = (w - right_x - SIDE_PAD).max(260.0);
 
-        draw_resources_panel(kingdom, SIDE_PAD, MAIN_Y, left_w, MAIN_H);
+        draw_resources_panel(kingdom, textures, SIDE_PAD, MAIN_Y, left_w, MAIN_H);
         draw_adventurer_summary(
             roster,
             self.selected_adventurer,

@@ -3,6 +3,7 @@
 use super::{MissionState, StateTransition};
 use crate::kingdom::{KingdomState, Party, PartyMemberState, Roster};
 use crate::missions::{load_missions, Mission, MissionType};
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
@@ -154,7 +155,7 @@ impl MissionSelectState {
         self.draw_background(textures);
         self.draw_header(kingdom);
         self.draw_party_panel(textures);
-        self.draw_mission_board(kingdom);
+        self.draw_mission_board(kingdom, textures);
         self.draw_detail_panel(kingdom);
         self.draw_shortcuts(kingdom);
     }
@@ -164,32 +165,10 @@ impl MissionSelectState {
     }
 
     fn draw_background(&self, textures: &std::collections::HashMap<String, Texture2D>) {
-        clear_background(Color::from_rgba(8, 6, 5, 255));
-        let path = self
-            .selected_mission()
-            .map(|mission| format!("assets/images/regions/{}.png", mission.region_id));
-
-        if let Some(path) = path {
-            if let Some(tex) = textures.get(&path) {
-                draw_texture_ex(
-                    tex,
-                    0.0,
-                    0.0,
-                    WHITE,
-                    DrawTextureParams {
-                        dest_size: Some(vec2(screen_width(), screen_height())),
-                        ..Default::default()
-                    },
-                );
-            }
-        }
-
-        draw_rectangle(
-            0.0,
-            0.0,
-            screen_width(),
-            screen_height(),
-            Color::from_rgba(5, 4, 4, 202),
+        draw_background(
+            textures,
+            BackgroundArt::MissionBoard,
+            Color::from_rgba(5, 4, 4, 190),
         );
     }
 
@@ -270,11 +249,22 @@ impl MissionSelectState {
         );
     }
 
-    fn draw_mission_board(&self, kingdom: &KingdomState) {
+    fn draw_mission_board(
+        &self,
+        kingdom: &KingdomState,
+        textures: &std::collections::HashMap<String, Texture2D>,
+    ) {
         panel(BOARD_X, PANEL_Y, BOARD_W, PANEL_H, "MISSION BOARD");
         for (i, mission) in self.missions.iter().enumerate() {
             let unlocked = self.is_mission_unlocked(mission, kingdom);
-            draw_mission_card(i, mission, i == self.selected_mission, unlocked, kingdom);
+            draw_mission_card(
+                i,
+                mission,
+                i == self.selected_mission,
+                unlocked,
+                kingdom,
+                textures,
+            );
         }
     }
 
@@ -475,6 +465,7 @@ fn draw_mission_card(
     selected: bool,
     unlocked: bool,
     kingdom: &KingdomState,
+    textures: &std::collections::HashMap<String, Texture2D>,
 ) {
     let (x, y, w, h) = mission_card_rect(i);
     let fill = if selected {
@@ -496,9 +487,16 @@ fn draw_mission_card(
         },
     );
 
+    let icon = match mission.mission_type {
+        MissionType::Scout => SpriteIcon::Knowledge,
+        MissionType::Suppress => SpriteIcon::Attack,
+        MissionType::Secure => SpriteIcon::Guard,
+        MissionType::Investigate => SpriteIcon::Event,
+    };
+    draw_icon(textures, icon, x + 8.0, y + 18.0, 28.0, WHITE);
     draw_ui_text(
         &format!("[{}] {}", i + 1, mission.name),
-        x + 12.0,
+        x + 44.0,
         y + 24.0,
         17.0,
         if unlocked {
@@ -509,7 +507,7 @@ fn draw_mission_card(
     );
     draw_ui_text(
         &format!("{:?}", mission.mission_type),
-        x + 12.0,
+        x + 44.0,
         y + 48.0,
         14.0,
         mission_type_color(&mission.mission_type),

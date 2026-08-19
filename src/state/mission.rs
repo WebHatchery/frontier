@@ -4,6 +4,7 @@ use super::combat::{CombatState, MissionContext};
 use super::{ResultState, StateTransition};
 use crate::kingdom::PartyMemberState;
 use crate::missions::{MapNode, Mission, NodeType};
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text;
 
@@ -291,29 +292,11 @@ impl MissionState {
     }
 
     pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
-        // Draw background
-        let bg_path = format!("assets/images/regions/{}.png", self.mission.region_id);
-        if let Some(tex) = textures.get(&bg_path) {
-            draw_texture_ex(
-                tex,
-                0.0,
-                0.0,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(screen_width(), screen_height())),
-                    ..Default::default()
-                },
-            );
-
-            // Dark overlay for readability
-            draw_rectangle(
-                0.0,
-                0.0,
-                screen_width(),
-                screen_height(),
-                Color::from_rgba(0, 0, 0, 150),
-            );
-        }
+        draw_background(
+            textures,
+            BackgroundArt::ExpeditionRoute,
+            Color::from_rgba(0, 0, 0, 154),
+        );
 
         draw_rectangle(
             0.0,
@@ -342,7 +325,7 @@ impl MissionState {
         draw_legend_panel();
         draw_route_panel();
         // Draw branching map
-        self.draw_branching_map();
+        self.draw_branching_map(textures);
         draw_current_node_panel(self.current_node(), self.available_paths.is_empty());
 
         // Instructions
@@ -366,7 +349,7 @@ impl MissionState {
     }
 
     /// Draw the branching map visualization
-    fn draw_branching_map(&self) {
+    fn draw_branching_map(&self, textures: &std::collections::HashMap<String, Texture2D>) {
         let map_y = 180.0;
         let node_size = 48.0;
         let layer_gap = 130.0;
@@ -464,18 +447,18 @@ impl MissionState {
 
             // Node icon
             let (icon, icon_color) = match &node.node_type {
-                NodeType::Combat => ("X", danger_color()),
-                NodeType::Boss => ("!", mystery_color()),
-                NodeType::Event => ("?", info_color()),
-                NodeType::Rest => ("+", ready_color()),
+                NodeType::Combat => (SpriteIcon::Attack, danger_color()),
+                NodeType::Boss => (SpriteIcon::Danger, mystery_color()),
+                NodeType::Event => (SpriteIcon::Event, info_color()),
+                NodeType::Rest => (SpriteIcon::Rest, ready_color()),
             };
-            let text_color =
+            let icon_tint =
                 if self.visited_nodes.contains(&node.id) || node.id == self.current_node_id {
-                    Color::from_rgba(12, 10, 8, 255)
+                    Color::from_rgba(240, 226, 198, 255)
                 } else {
                     icon_color
                 };
-            draw_ui_text(icon, node_x + 17.0, node_y + 34.0, 26.0, text_color);
+            draw_icon(textures, icon, node_x + 8.0, node_y + 8.0, 32.0, icon_tint);
 
             // Show selection number if path choice
             if let Some(idx) = self.available_paths.iter().position(|&id| id == node.id) {

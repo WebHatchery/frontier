@@ -3,6 +3,7 @@
 use super::StateTransition;
 use crate::kingdom::{Injury, KingdomState, PartyMemberState, Roster};
 use crate::missions::Mission;
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text;
 
@@ -329,8 +330,14 @@ impl ResultState {
         }
     }
 
-    pub fn draw(&self, _textures: &std::collections::HashMap<String, Texture2D>) {
+    pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
         let is_dead = self.final_hp.is_some_and(|hp| hp <= 0);
+
+        draw_background(
+            textures,
+            BackgroundArt::ResultsAftermath,
+            Color::from_rgba(5, 6, 8, 164),
+        );
 
         let title = if is_dead {
             "FALLEN IN BATTLE"
@@ -341,7 +348,19 @@ impl ResultState {
         };
         let title_color = if self.victory { GREEN } else { RED };
 
-        draw_ui_text(title, 20.0, 60.0, 36.0, title_color);
+        draw_icon(
+            textures,
+            if is_dead || !self.victory {
+                SpriteIcon::Danger
+            } else {
+                SpriteIcon::Vitality
+            },
+            18.0,
+            22.0,
+            44.0,
+            WHITE,
+        );
+        draw_ui_text(title, 74.0, 60.0, 36.0, title_color);
 
         let mut y = 120.0;
 
@@ -360,23 +379,27 @@ impl ResultState {
 
         // Show final stats if available
         if let Some(final_hp) = self.final_hp {
-            draw_ui_text(&format!("Final HP: {}", final_hp), 20.0, y, 20.0, GREEN);
+            draw_icon(textures, SpriteIcon::Vitality, 18.0, y - 23.0, 24.0, WHITE);
+            draw_ui_text(&format!("Final HP: {}", final_hp), 56.0, y, 20.0, GREEN);
             y += 30.0;
         } else if self.hp_lost > 0 {
-            draw_ui_text(&format!("HP Lost: -{}", self.hp_lost), 20.0, y, 20.0, RED);
+            draw_icon(textures, SpriteIcon::Danger, 18.0, y - 23.0, 24.0, WHITE);
+            draw_ui_text(&format!("HP Lost: -{}", self.hp_lost), 56.0, y, 20.0, RED);
             y += 30.0;
         }
 
         if let Some(final_stress) = self.final_stress {
+            draw_icon(textures, SpriteIcon::Event, 18.0, y - 23.0, 24.0, WHITE);
             draw_ui_text(
                 &format!("Final Stress: {}", final_stress),
-                20.0,
+                56.0,
                 y,
-                20.0,
+                56.0,
                 ORANGE,
             );
             y += 30.0;
         } else {
+            draw_icon(textures, SpriteIcon::Event, 18.0, y - 23.0, 24.0, WHITE);
             draw_ui_text(
                 &format!("Stress Gained: +{}", self.stress_gained),
                 20.0,
@@ -388,20 +411,22 @@ impl ResultState {
         }
 
         if !self.injuries.is_empty() {
-            draw_ui_text("Injuries:", 20.0, y, 20.0, RED);
+            draw_icon(textures, SpriteIcon::Danger, 18.0, y - 23.0, 24.0, WHITE);
+            draw_ui_text("Injuries:", 56.0, y, 20.0, RED);
             y += 25.0;
             for injury in &self.injuries {
-                draw_ui_text(&format!("  - {}", injury), 20.0, y, 18.0, PINK);
+                draw_ui_text(&format!("  - {}", injury), 56.0, y, 18.0, PINK);
                 y += 22.0;
             }
             y += 10.0;
         }
 
         if !self.rewards.is_empty() {
-            draw_ui_text("Rewards:", 20.0, y, 20.0, GREEN);
+            draw_icon(textures, SpriteIcon::Gold, 18.0, y - 23.0, 24.0, WHITE);
+            draw_ui_text("Rewards:", 56.0, y, 20.0, GREEN);
             y += 25.0;
             for reward in &self.rewards {
-                draw_ui_text(&format!("  + {}", reward), 20.0, y, 18.0, LIME);
+                draw_ui_text(&format!("  + {}", reward), 56.0, y, 18.0, LIME);
                 y += 22.0;
             }
         }

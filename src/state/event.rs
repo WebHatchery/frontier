@@ -4,6 +4,7 @@ use super::{MissionState, StateTransition};
 use crate::kingdom::PartyMemberState;
 use crate::missions::events::{Event, EventOutcome};
 use crate::missions::{MapNode, Mission};
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text;
 use std::collections::HashMap;
@@ -176,14 +177,11 @@ impl EventState {
         None
     }
 
-    pub fn draw(&self, _textures: &HashMap<String, Texture2D>) {
-        // Darken background
-        draw_rectangle(
-            0.0,
-            0.0,
-            screen_width(),
-            screen_height(),
-            Color::from_rgba(0, 0, 0, 180),
+    pub fn draw(&self, textures: &HashMap<String, Texture2D>) {
+        draw_background(
+            textures,
+            BackgroundArt::EventShrine,
+            Color::from_rgba(0, 0, 0, 146),
         );
 
         // Event panel
@@ -202,9 +200,17 @@ impl EventState {
         draw_rectangle_lines(panel_x, panel_y, panel_w, panel_h, 2.0, WHITE);
 
         // Title
+        draw_icon(
+            textures,
+            SpriteIcon::Event,
+            panel_x + 18.0,
+            panel_y + 14.0,
+            32.0,
+            WHITE,
+        );
         draw_ui_text(
             &self.event.title,
-            panel_x + 20.0,
+            panel_x + 58.0,
             panel_y + 40.0,
             32.0,
             YELLOW,

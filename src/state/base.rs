@@ -9,7 +9,6 @@ mod panels;
 
 use crate::kingdom::Party;
 
-const UI_BG_PATH: &str = "assets/images/ui/command_table.png";
 const HEADER_H: f32 = 92.0;
 const MAIN_Y: f32 = 110.0;
 const MAIN_H: f32 = 245.0;

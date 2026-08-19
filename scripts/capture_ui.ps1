@@ -8,14 +8,16 @@
     (FRONTIER_KINGDOM_CAPTURE_*) provided by macroquad_toolkit::capture in
     src/main.rs. Scenes seed a GameState via Game::begin_capture_scene:
     "base" (kingdom command table, also the boot state), "missions" (mission
-    select screen), and "recruit" (recruitment screen).
+    select screen), "mission" (expedition route), "event" (narrative choice),
+    "combat" (combat arena), "results" (mission aftermath), and "recruit"
+    (recruitment screen).
 
 .EXAMPLE
     ./scripts/capture_ui.ps1
     ./scripts/capture_ui.ps1 -Frames 60 -SkipBuild
 #>
 param(
-    [string[]]$Scenes = @("base", "missions", "recruit"),
+    [string[]]$Scenes = @("base", "missions", "mission", "event", "combat", "results", "recruit"),
     [int]$Frames = 150,
     [string]$OutputDir = "docs\verification",
     [switch]$SkipBuild

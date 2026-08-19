@@ -247,10 +247,6 @@ pub(super) fn card_accent(card: &crate::combat::Card) -> Color {
     }
 }
 
-pub(super) fn table_color() -> Color {
-    Color::from_rgba(40, 25, 16, 255)
-}
-
 pub(super) fn title_color() -> Color {
     Color::from_rgba(236, 224, 198, 255)
 }

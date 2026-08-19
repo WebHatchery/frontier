@@ -2,6 +2,7 @@
 
 use super::StateTransition;
 use crate::kingdom::{Adventurer, AdventurerClass, KingdomState, Roster};
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::rng;
 use macroquad_toolkit::ui::draw_ui_text;
@@ -119,10 +120,16 @@ impl RecruitState {
     }
 
     pub fn draw(&self, kingdom: &KingdomState, textures: &HashMap<String, Texture2D>) {
+        draw_background(
+            textures,
+            BackgroundArt::Recruit,
+            Color::from_rgba(5, 5, 8, 174),
+        );
         draw_ui_text("RECRUITMENT", 20.0, 40.0, 32.0, WHITE);
+        draw_icon(textures, SpriteIcon::Gold, 18.0, 48.0, 26.0, WHITE);
         draw_ui_text(
             &format!("Gold: {}", kingdom.stats.gold),
-            20.0,
+            52.0,
             70.0,
             20.0,
             YELLOW,
@@ -170,6 +177,14 @@ impl RecruitState {
                     );
                 }
             }
+
+            let class_icon = match recruit.adventurer.class {
+                AdventurerClass::Soldier => SpriteIcon::Attack,
+                AdventurerClass::Scout => SpriteIcon::Knowledge,
+                AdventurerClass::Healer => SpriteIcon::Vitality,
+                AdventurerClass::Mystic => SpriteIcon::Event,
+            };
+            draw_icon(textures, class_icon, 450.0, y + 12.0, 48.0, WHITE);
 
             // Info
             let text_color = if is_selected { WHITE } else { GRAY };

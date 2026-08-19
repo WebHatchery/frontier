@@ -4,10 +4,11 @@ use super::helpers::{
     action_buttons, action_enabled, border_color, candle_color, danger_color, draw_wrapped_text,
     facility_card_rect, facility_purpose, info_color, morale_color, morale_label, muted_text_color,
     mystery_color, panel, parchment_color, readiness_color, readiness_label, ready_color,
-    tab_width, table_color, text_color, title_color,
+    tab_width, text_color, title_color,
 };
-use super::{BaseState, BaseTab, ACTION_H, ACTION_Y, HEADER_H, SIDE_PAD, UI_BG_PATH};
+use super::{BaseState, BaseTab, ACTION_H, ACTION_Y, HEADER_H, SIDE_PAD};
 use crate::kingdom::{Adventurer, Building, KingdomState, Roster};
+use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
@@ -31,41 +32,10 @@ impl BaseState {
 pub(super) fn draw_command_table_background(
     textures: &std::collections::HashMap<String, Texture2D>,
 ) {
-    clear_background(Color::from_rgba(14, 10, 8, 255));
-    if let Some(tex) = textures.get(UI_BG_PATH) {
-        draw_texture_ex(
-            tex,
-            0.0,
-            0.0,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(vec2(screen_width(), screen_height())),
-                ..Default::default()
-            },
-        );
-    } else {
-        draw_rectangle(0.0, 0.0, screen_width(), screen_height(), table_color());
-        draw_circle(190.0, 120.0, 86.0, Color::from_rgba(120, 70, 28, 50));
-        draw_circle(
-            screen_width() - 160.0,
-            82.0,
-            72.0,
-            Color::from_rgba(150, 92, 34, 45),
-        );
-    }
-    draw_rectangle(
-        0.0,
-        0.0,
-        screen_width(),
-        screen_height(),
-        Color::from_rgba(8, 6, 5, 148),
-    );
-    draw_rectangle(
-        0.0,
-        0.0,
-        screen_width(),
-        screen_height(),
-        Color::from_rgba(40, 24, 10, 68),
+    draw_background(
+        textures,
+        BackgroundArt::Base,
+        Color::from_rgba(8, 6, 5, 168),
     );
 }
 
@@ -138,20 +108,53 @@ pub(super) fn draw_tabs(active_tab: BaseTab) {
     }
 }
 
-pub(super) fn draw_resources_panel(kingdom: &KingdomState, x: f32, y: f32, w: f32, h: f32) {
+pub(super) fn draw_resources_panel(
+    kingdom: &KingdomState,
+    textures: &std::collections::HashMap<String, Texture2D>,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+) {
     panel(x, y, w, h, "RESOURCES");
     let stats = &kingdom.stats;
     let rows = [
-        ("Gold", stats.gold, candle_color()),
-        ("Supplies", stats.supplies, parchment_color()),
-        ("Security", stats.security, info_color()),
-        ("Morale", stats.morale, morale_color(stats.morale)),
-        ("Knowledge", stats.knowledge, mystery_color()),
-        ("Influence", stats.influence, muted_text_color()),
+        ("Gold", stats.gold, candle_color(), SpriteIcon::Gold),
+        (
+            "Supplies",
+            stats.supplies,
+            parchment_color(),
+            SpriteIcon::Supplies,
+        ),
+        (
+            "Security",
+            stats.security,
+            info_color(),
+            SpriteIcon::Security,
+        ),
+        (
+            "Morale",
+            stats.morale,
+            morale_color(stats.morale),
+            SpriteIcon::Morale,
+        ),
+        (
+            "Knowledge",
+            stats.knowledge,
+            mystery_color(),
+            SpriteIcon::Knowledge,
+        ),
+        (
+            "Influence",
+            stats.influence,
+            muted_text_color(),
+            SpriteIcon::Influence,
+        ),
     ];
     let mut row_y = y + 52.0;
-    for (label, value, color) in rows {
-        draw_ui_text(label, x + 18.0, row_y, 17.0, muted_text_color());
+    for (label, value, color, icon) in rows {
+        draw_icon(textures, icon, x + 14.0, row_y - 19.0, 24.0, WHITE);
+        draw_ui_text(label, x + 46.0, row_y, 17.0, muted_text_color());
         draw_ui_text(&value.to_string(), x + w - 70.0, row_y, 20.0, color);
         row_y += 30.0;
     }
