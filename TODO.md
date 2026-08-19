@@ -2,23 +2,33 @@
 
 ## Shell and navigation
 
-- There is no title screen; the game drops straight into the base. Add Continue / New Game / Settings / Exit.
-- Every screen still draws a `Shortcuts:` footer (`base/panels.rs`, `combat/draw.rs`, `mission_select.rs`). Keep the keys, demote the text.
-- Some screens are not yet fully mouse-driven; a few actions remain keyboard-only.
-- The base action bar duplicates entries already on the top tab bar — keep one.
+- Add a title/menu state before the base screen.
+  - Show Continue only when a save exists and load that save.
+  - Start New Game with a fresh kingdom and starter roster.
+  - Add a visible Exit control with the correct browser/native behavior.
+- Replace the base screen's `Shortcuts:` footer with a compact optional-controls hint.
+- Add visible Save and Load controls to the base screen so persistence does not require F5/F9.
+- Remove the duplicate Roster and Facilities buttons from the base action bar.
+  - Keep the top tab bar as the navigation control.
+  - Reflow the remaining contextual actions and update their hit rectangles.
 
 ## Screens
 
-- A few screens still use the pre-redesign layout and have overlapping elements; `src/state/mission_select.rs` is the largest holdout at 771 lines.
-- Combat needs more feedback on hits, blocks, and status changes — the mechanics read fine but land quietly.
-
-## Content
-
-- No tutorial or framing narrative; a short guided opening would carry the player into the emergent loop.
+- Finish the mission-selection redesign before `src/state/mission_select.rs` reaches the 800-line limit.
+  - Extract input and transition handling from the screen module.
+  - Extract mission-card, briefing, and layout helpers into focused modules.
+  - Verify the 1280×720 layout has no clipping or overlap and refresh its verification screenshot.
+- Make combat resolution feedback explicit for damage, blocked damage, and status changes.
+  - Record the resolved deltas instead of only showing selection and turn-start messages.
+  - Render readable feedback for both player and enemy effects, including multi-party combat.
 
 ## Testing
 
-- The crate has no tests. Start with mission-state selection/launch/resolution/reward/failure paths.
-- Extract recruit, event, and combat reward math into pure evaluators with fixtures for low-resource and over-capacity cases.
-- Add campaign fixtures covering base upgrades, mission chains, kingdom events, and result-screen progression.
-- Consolidate state-screen navigation so base, combat, event, recruit, and results share one transition policy.
+- Add gameplay test coverage in separate test modules.
+  - Test mission selection and launch for locked and unlocked missions.
+  - Test route-node resolution, successful completion, rewards, and failure results.
+- Extract recruit eligibility and cost calculation into a pure evaluator and fixture low-resource and roster-capacity cases.
+- Extract event outcome application into a deterministic evaluator and fixture each event choice, including combat-triggering choices.
+- Extract combat reward and consequence calculation into a pure evaluator and fixture damage, stress, injury, death, and party cases.
+- Add campaign fixtures for base upgrades, mission chains and unlocks, kingdom events, and result-screen progression.
+- Refresh the affected `docs/verification/` screenshots so they match the current tap-first controls.
