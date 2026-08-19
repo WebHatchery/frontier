@@ -1,10 +1,10 @@
 //! Persistent panel chrome: background, header, tabs, and summary readouts.
 
 use super::helpers::{
-    action_buttons, action_enabled, border_color, candle_color, danger_color, draw_wrapped_text,
-    facility_card_rect, facility_purpose, info_color, morale_color, morale_label, muted_text_color,
-    mystery_color, panel, parchment_color, readiness_color, readiness_label, ready_color,
-    tab_width, text_color, title_color,
+    action_button_rect, action_buttons, action_enabled, border_color, candle_color, danger_color,
+    draw_wrapped_text, facility_card_rect, facility_purpose, info_color, morale_color,
+    morale_label, muted_text_color, mystery_color, panel, parchment_color, readiness_color,
+    readiness_label, ready_color, tab_width, text_color, title_color,
 };
 use super::{BaseState, BaseTab, ACTION_H, ACTION_Y, HEADER_H, SIDE_PAD};
 use crate::kingdom::{Adventurer, Building, KingdomState, Roster};
@@ -22,9 +22,9 @@ impl BaseState {
             "KINGDOM ACTIONS",
         );
         for (i, action) in action_buttons().iter().enumerate() {
-            let x = SIDE_PAD + 18.0 + (i as f32 * 138.0);
+            let (x, y, w, h) = action_button_rect(i);
             let enabled = action_enabled(action, kingdom, roster, self.selected_adventurer);
-            draw_action_button(action, x, ACTION_Y + 30.0, 126.0, 30.0, enabled);
+            draw_action_button(action, x, y, w, h, enabled);
         }
     }
 }
@@ -402,7 +402,7 @@ pub(super) fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, en
 
 pub(super) fn draw_shortcuts() {
     draw_ui_text(
-        "Shortcuts: 1-9 Select - Tab Tabs - M Party - D Deck - H/T Treat - U Train - F5 Save - F9 Load",
+        "Optional controls: keyboard shortcuts can supplement the visible touch controls",
         SIDE_PAD,
         screen_height() - 18.0,
         14.0,

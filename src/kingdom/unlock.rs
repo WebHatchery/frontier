@@ -50,3 +50,6 @@ impl UnlockRequirement {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

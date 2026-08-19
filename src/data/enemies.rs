@@ -80,3 +80,13 @@ pub fn random_enemy_for_region_and_difficulty(region_id: &str, difficulty: i32) 
         Err(_) => Unit::new_enemy("Forest Beast", 30, None),
     }
 }
+
+/// Resolve a named event enemy, falling back to the normal regional table.
+pub fn enemy_by_id_or_region(enemy_id: &str, region_id: &str, difficulty: i32) -> Unit {
+    if let Ok(enemies) = EnemyData::load_all() {
+        if let Some(enemy) = enemies.iter().find(|enemy| enemy.id == enemy_id) {
+            return enemy.to_unit();
+        }
+    }
+    random_enemy_for_region_and_difficulty(region_id, difficulty)
+}

@@ -1,10 +1,11 @@
 //! Input handling and state mutation for the base screen.
 
 use super::helpers::{
-    action_buttons, adventurer_row_hit_rect, deck_close_button_rect, detail_back_button_rect,
-    facility_card_rect, number_key, party_back_button_rect, party_mission_button_rect, tab_width,
+    action_button_rect, action_buttons, adventurer_row_hit_rect, deck_close_button_rect,
+    detail_back_button_rect, facility_card_rect, number_key, party_back_button_rect,
+    party_mission_button_rect, tab_width,
 };
-use super::{BaseState, BaseTab, FocusArea, ACTION_Y, MAIN_Y, SIDE_PAD};
+use super::{BaseState, BaseTab, FocusArea, MAIN_Y, SIDE_PAD};
 use crate::kingdom::{KingdomState, Party, Roster};
 use crate::state::{MissionSelectState, StateTransition};
 use macroquad::prelude::*;
@@ -126,18 +127,10 @@ impl BaseState {
         roster: &mut Roster,
     ) -> Option<StateTransition> {
         for (i, action) in action_buttons().iter().enumerate() {
-            let x = SIDE_PAD + 18.0 + (i as f32 * 138.0);
-            if crate::ui::was_clicked(x, ACTION_Y + 30.0, 126.0, 30.0) {
+            let (x, y, w, h) = action_button_rect(i);
+            if crate::ui::was_clicked(x, y, w, h) {
                 match *action {
                     "Embark" => self.start_party_from_selected(roster),
-                    "Roster" => {
-                        self.active_tab = BaseTab::Roster;
-                        self.focus = FocusArea::Roster;
-                    }
-                    "Facilities" => {
-                        self.active_tab = BaseTab::Buildings;
-                        self.focus = FocusArea::Buildings;
-                    }
                     "Treat" => self.treat_selected_adventurer(kingdom, roster),
                     "Recruit" => {
                         if kingdom.has_building("guild_hall") {
@@ -147,6 +140,8 @@ impl BaseState {
                     "Decks" if self.selected_adventurer.is_some() => {
                         self.viewing_deck = true;
                     }
+                    "Save" => return Some(StateTransition::SaveGame),
+                    "Load" => return Some(StateTransition::LoadGame),
                     _ => {}
                 }
             }
@@ -278,11 +273,11 @@ impl BaseState {
     }
 
     pub(super) fn can_build(&self, kingdom: &KingdomState, idx: usize) -> bool {
-        kingdom.buildings.get(idx).is_some_and(|building| {
-            !building.built
-                && kingdom.stats.gold >= building.cost_gold
-                && kingdom.stats.supplies >= building.cost_supplies
-        })
+        kingdom
+            .buildings
+            .get(idx)
+            .and_then(|building| crate::kingdom::evaluate_construction(building, &kingdom.stats))
+            .is_some()
     }
 
     /// Try to construct a building at the given index.
@@ -291,9 +286,16 @@ impl BaseState {
             return;
         }
 
+        let Some(building) = kingdom.buildings.get(idx) else {
+            return;
+        };
+        let Some(evaluation) = crate::kingdom::evaluate_construction(building, &kingdom.stats)
+        else {
+            return;
+        };
         if let Some(building) = kingdom.buildings.get_mut(idx) {
-            kingdom.stats.gold -= building.cost_gold;
-            kingdom.stats.supplies -= building.cost_supplies;
+            kingdom.stats.gold -= evaluation.cost_gold;
+            kingdom.stats.supplies -= evaluation.cost_supplies;
             building.built = true;
             building.level = 1;
             if building.id == "citadel" {

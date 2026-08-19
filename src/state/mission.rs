@@ -194,7 +194,7 @@ impl MissionState {
         None
     }
 
-    fn advance_route(&mut self) -> Option<StateTransition> {
+    pub(super) fn advance_route(&mut self) -> Option<StateTransition> {
         let connections = self.current_node()?.connections.clone();
         if connections.is_empty() {
             return Some(StateTransition::ToResults(
@@ -527,6 +527,9 @@ impl MissionState {
         draw_ui_text(&progress, 350.0, 147.0, 18.0, candle_color());
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 fn draw_party_panel(
     party_members: &[PartyMemberState],

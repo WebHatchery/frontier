@@ -68,14 +68,16 @@ pub(super) fn tab_width(tab: BaseTab) -> f32 {
 }
 
 pub(super) fn action_buttons() -> [&'static str; 6] {
-    [
-        "Embark",
-        "Roster",
-        "Facilities",
-        "Treat",
-        "Recruit",
-        "Decks",
-    ]
+    ["Embark", "Treat", "Recruit", "Decks", "Save", "Load"]
+}
+
+pub(super) fn action_button_rect(index: usize) -> (f32, f32, f32, f32) {
+    (
+        SIDE_PAD + 18.0 + (index as f32 * 138.0),
+        super::ACTION_Y + 30.0,
+        126.0,
+        30.0,
+    )
 }
 
 pub(super) fn action_enabled(
@@ -90,6 +92,7 @@ pub(super) fn action_enabled(
             .and_then(|idx| roster.adventurers.get(idx))
             .is_some(),
         "Recruit" => kingdom.has_building("guild_hall"),
+        "Save" | "Load" => true,
         _ => true,
     }
 }

@@ -7,7 +7,7 @@
     debug exe and drives it through the env-var capture hook
     (FRONTIER_KINGDOM_CAPTURE_*) provided by macroquad_toolkit::capture in
     src/main.rs. Scenes seed a GameState via Game::begin_capture_scene:
-    "base" (kingdom command table, also the boot state), "missions" (mission
+    "menu" (title screen), "base" (kingdom command table), "missions" (mission
     select screen), "mission" (expedition route), "event" (narrative choice),
     "combat" (combat arena), "results" (mission aftermath), and "recruit"
     (recruitment screen).
@@ -17,7 +17,7 @@
     ./scripts/capture_ui.ps1 -Frames 60 -SkipBuild
 #>
 param(
-    [string[]]$Scenes = @("base", "missions", "mission", "event", "combat", "results", "recruit"),
+    [string[]]$Scenes = @("menu", "base", "missions", "mission", "event", "combat", "results", "recruit"),
     [int]$Frames = 150,
     [string]$OutputDir = "docs\verification",
     [switch]$SkipBuild

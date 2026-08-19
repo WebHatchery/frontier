@@ -5,6 +5,7 @@
 mod base;
 mod combat;
 mod event;
+mod menu;
 mod mission;
 mod mission_select;
 mod recruit;
@@ -13,6 +14,7 @@ mod results;
 pub use base::BaseState;
 pub use combat::CombatState;
 pub use event::EventState;
+pub use menu::MenuState;
 pub use mission::MissionState;
 pub use mission_select::MissionSelectState;
 pub use recruit::RecruitState;
@@ -22,6 +24,11 @@ use crate::kingdom::Party;
 
 /// Explicit state transitions - no magic callbacks
 pub enum StateTransition {
+    StartNewGame,
+    ContinueGame,
+    SaveGame,
+    LoadGame,
+    Quit,
     ToBase,
     ToPartyFormation(Party),
     ToMissionSelect(MissionSelectState),

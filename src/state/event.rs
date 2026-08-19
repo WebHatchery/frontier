@@ -2,7 +2,7 @@
 
 use super::{MissionState, StateTransition};
 use crate::kingdom::PartyMemberState;
-use crate::missions::events::{Event, EventOutcome};
+use crate::missions::events::{evaluate_choice, Event};
 use crate::missions::{MapNode, Mission};
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
@@ -136,23 +136,13 @@ impl EventState {
     /// Confirm the currently selected choice and return transition
     fn confirm_choice(&mut self) -> Option<StateTransition> {
         if let Some(choice) = self.event.choices.get(self.selected_choice) {
-            // Process outcomes
-            for outcome in &choice.outcomes {
-                match outcome {
-                    EventOutcome::Stress(amt) => self.stress_change += amt,
-                    EventOutcome::Heal(amt) => self.hp_change += amt,
-                    EventOutcome::Supplies(amt) => self.supplies_change += amt,
-                    EventOutcome::Knowledge(amt) => self.knowledge_change += amt,
-                    EventOutcome::Combat(enemy_id) => {
-                        self.trigger_combat = Some(enemy_id.clone());
-                    }
-                    EventOutcome::SkipNode => self.skip_node = true,
-                    EventOutcome::RevealTrait => {
-                        self.knowledge_change += 5;
-                    }
-                    EventOutcome::Nothing => {}
-                }
-            }
+            let delta = evaluate_choice(choice);
+            self.stress_change = delta.stress;
+            self.hp_change = delta.hp;
+            self.supplies_change = delta.supplies;
+            self.knowledge_change = delta.knowledge;
+            self.trigger_combat = delta.combat_enemy;
+            self.skip_node = delta.skip_node;
             self.return_to_mission = true;
 
             // Return to mission if we have context, otherwise go to base
@@ -164,11 +154,31 @@ impl EventState {
                     member.stress = (member.stress + self.stress_change).clamp(0, 100);
                 }
 
-                let mission_state =
+                let mut mission_state =
                     MissionState::from_mission_with_party(ctx.mission.clone(), updated_members)
                         .with_node(ctx.current_node)
                         .with_map_nodes(ctx.map_nodes.clone())
                         .with_visited(ctx.visited_nodes.clone());
+                if let Some(enemy_id) = &self.trigger_combat {
+                    let combat_context = super::combat::MissionContext {
+                        mission: ctx.mission.clone(),
+                        current_node: ctx.current_node,
+                        party_members: mission_state.party_members.clone(),
+                        map_nodes: ctx.map_nodes.clone(),
+                        visited_nodes: ctx.visited_nodes.clone(),
+                    };
+                    return Some(StateTransition::ToCombat(
+                        super::CombatState::for_mission_with_enemy(
+                            combat_context,
+                            Some(enemy_id.as_str()),
+                        ),
+                    ));
+                }
+                if self.skip_node {
+                    if let Some(transition) = mission_state.advance_route() {
+                        return Some(transition);
+                    }
+                }
                 return Some(StateTransition::ToMission(mission_state));
             } else {
                 return Some(StateTransition::ToBase);
@@ -336,3 +346,6 @@ impl EventState {
         );
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -1,9 +1,14 @@
 //! Results state - post-mission consequences and resolution
 
+mod evaluator;
+
 use super::StateTransition;
-use crate::kingdom::{Injury, KingdomState, PartyMemberState, Roster};
+use crate::kingdom::{
+    evaluate_kingdom_event, Injury, KingdomEventKind, KingdomState, PartyMemberState, Roster,
+};
 use crate::missions::Mission;
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
+use evaluator::{calculate_party_consequences, calculate_rewards};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
@@ -92,13 +97,14 @@ impl ResultState {
 
     pub fn victory_for_mission(mission: &Mission, party_members: &[PartyMemberState]) -> Self {
         let mut result = Self::victory_for_party(party_members);
+        let rewards = calculate_rewards(true, mission);
         result.mission_id = Some(mission.id.clone());
         result.mission_difficulty = mission.difficulty;
         result.stress_gained = mission.base_stress;
-        result.reward_gold = mission.reward_gold;
-        result.reward_supplies = mission.reward_supplies;
-        result.reward_knowledge = mission.reward_knowledge;
-        result.reward_influence = mission.reward_influence;
+        result.reward_gold = rewards.gold;
+        result.reward_supplies = rewards.supplies;
+        result.reward_knowledge = rewards.knowledge;
+        result.reward_influence = rewards.influence;
         result.rewards = vec![
             format!("{} Gold", mission.reward_gold),
             format!("{} Supplies", mission.reward_supplies),
@@ -210,14 +216,20 @@ impl ResultState {
             return;
         }
 
-        for state in &self.party_member_states {
-            if state.hp <= 0 {
-                roster.record_death(&state.id);
+        let consequences = calculate_party_consequences(
+            self.victory,
+            self.mission_difficulty,
+            self.stress_gained,
+            &self.party_member_states,
+        );
+        for (state, consequence) in self.party_member_states.iter().zip(consequences) {
+            if consequence.died {
+                roster.record_death(&consequence.id);
                 continue;
             }
 
-            if let Some(adv) = roster.get_mut(&state.id) {
-                adv.hp = state.hp.max(1).min(adv.max_hp);
+            if let Some(adv) = roster.get_mut(&consequence.id) {
+                adv.hp = consequence.final_hp;
                 if state.resolve_state.is_some() {
                     adv.resolve_state = state.resolve_state.clone();
                 }
@@ -231,7 +243,7 @@ impl ResultState {
                     }
                 }
 
-                let stress_delta = state.stress - adv.stress;
+                let stress_delta = consequence.final_stress - adv.stress;
                 if stress_delta < 0 {
                     adv.reduce_stress(-stress_delta);
                 }
@@ -240,13 +252,20 @@ impl ResultState {
                     adv.apply_stress_gain(total_stress_gain);
                 }
 
-                if adv.hp <= adv.max_hp / 3 && !adv.injuries.iter().any(|i| i.id == "wounded_leg") {
-                    adv.injuries.push(Injury::wounded_leg());
+                for injury_id in consequence.injury_ids {
+                    if !adv.injuries.iter().any(|injury| injury.id == injury_id) {
+                        let injury = if injury_id == "broken_arm" {
+                            Injury::broken_arm()
+                        } else {
+                            Injury::wounded_leg()
+                        };
+                        adv.injuries.push(injury);
+                    }
                 }
 
                 if self.victory {
                     adv.missions_completed += 1;
-                    adv.xp += 10 + (self.mission_difficulty * 2);
+                    adv.xp += consequence.xp_gain;
                     let needed = adv.level * 20;
                     if adv.xp >= needed {
                         adv.xp -= needed;
@@ -254,8 +273,6 @@ impl ResultState {
                         adv.max_hp += 3;
                         adv.hp = (adv.hp + 3).min(adv.max_hp);
                     }
-                } else if !adv.injuries.iter().any(|i| i.id == "broken_arm") {
-                    adv.injuries.push(Injury::broken_arm());
                 }
             }
         }
@@ -301,40 +318,24 @@ impl ResultState {
             return None;
         }
 
-        match macroquad_toolkit::rng::gen_range(0, 4) {
-            0 => {
-                kingdom.stats.morale = (kingdom.stats.morale - 6).max(0);
-                if let Some(adv) = roster.adventurers.first_mut() {
-                    adv.apply_stress_gain(6);
-                }
-                Some("Plague: morale fell and the roster gained stress.".to_string())
-            }
-            1 => {
-                let stolen = kingdom.stats.gold.min(25);
-                kingdom.stats.gold -= stolen;
-                Some(format!(
-                    "Thieves: {} gold was stolen from the stores.",
-                    stolen
-                ))
-            }
-            2 => {
-                if kingdom.stats.gold >= 15 {
-                    kingdom.stats.gold -= 15;
-                    kingdom.stats.supplies += 25;
-                    Some("Traders: paid 15 gold for 25 supplies.".to_string())
-                } else {
-                    kingdom.stats.gold += 10;
-                    Some("Traders: a small debt was forgiven for 10 gold.".to_string())
-                }
-            }
-            _ => {
-                kingdom.stats.morale = (kingdom.stats.morale + 8).min(100);
-                for adv in &mut roster.adventurers {
-                    adv.reduce_stress(3);
-                }
-                Some("Festival: morale rose and adventurers shed a little stress.".to_string())
+        let kind = match macroquad_toolkit::rng::gen_range(0, 4) {
+            0 => KingdomEventKind::Plague,
+            1 => KingdomEventKind::Thieves,
+            2 => KingdomEventKind::Traders,
+            _ => KingdomEventKind::Festival,
+        };
+        let outcome = evaluate_kingdom_event(kind, kingdom.stats.gold);
+        kingdom.stats.gold = (kingdom.stats.gold + outcome.gold_delta).max(0);
+        kingdom.stats.supplies = (kingdom.stats.supplies + outcome.supplies_delta).max(0);
+        kingdom.stats.morale = (kingdom.stats.morale + outcome.morale_delta).clamp(0, 100);
+        for adv in &mut roster.adventurers {
+            if outcome.stress_delta >= 0 {
+                adv.apply_stress_gain(outcome.stress_delta);
+            } else {
+                adv.reduce_stress(-outcome.stress_delta);
             }
         }
+        Some(outcome.message)
     }
 
     pub fn draw(&self, textures: &std::collections::HashMap<String, Texture2D>) {
@@ -456,6 +457,9 @@ impl ResultState {
         );
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 fn return_button_rect() -> (f32, f32, f32, f32) {
     (screen_width() - 286.0, 20.0, 260.0, 38.0)

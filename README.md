@@ -7,6 +7,7 @@ Frontier Kingdom is a dark expedition card RPG built in Rust with Macroquad. You
 - Party formation with soldiers, scouts, healers, and mystics.
 - Gendered adventurer portraits and class-specific card pools.
 - Candlelit command-table base UI with top-level tabs, facility cards, action bar, and contextual detail panels.
+- Title menu with fresh-campaign, save continuation, and platform-safe exit controls.
 - Embark preparation screen with party risk, mission briefing, readable locked requirements, and rewards.
 - Branching mission maps with combat, event, rest, and boss nodes.
 - Expedition route panel with anchored party status and node legend.
@@ -38,7 +39,7 @@ Frontier Kingdom is a dark expedition card RPG built in Rust with Macroquad. You
 - `A/D` or `Left/Right`: choose between available mission paths.
 - `E`: end combat turn.
 - `Esc`: close overlays, cancel, retreat, or return.
-- `F5` / `F9`: save and load from the base.
+- `F5` / `F9`: optional save and load shortcuts from the base; visible Save and Load buttons are always available.
 
 Mouse selection is supported for roster rows, facility cards, action buttons, mission cards, event choices, mission path nodes, combat cards, and the end-turn button.
 
@@ -84,6 +85,5 @@ information is rendered by the UI, never baked into artwork.
 - `src/ui/`, `src/data/`, `src/save/`: immediate-mode drawing helpers, JSON loaders, and the single versioned `SaveData` struct.
 - `assets/`: cards, enemies, missions, regions, prompt metadata, and runtime images. Balance and content live here, not in Rust.
 - `gdd.md`: game design notes.
-- `TODO.md`: open work.
+- `TODO.md`: checked completion record for the current TODO pass.
 - `generate_assets.ps1`, `comfyui-*.ps1`, `COMFYUI-curl-examples.md`: optional local asset-generation tooling.
-

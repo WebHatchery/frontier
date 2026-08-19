@@ -61,6 +61,13 @@ pub struct Unit {
     pub heart_attacks: u32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DamageResolution {
+    pub requested: i32,
+    pub blocked: i32,
+    pub actual: i32,
+}
+
 impl Unit {
     pub fn new_player(name: &str, max_hp: i32) -> Self {
         Self {
@@ -241,6 +248,10 @@ impl Unit {
     }
 
     pub fn take_damage(&mut self, amount: i32) -> i32 {
+        self.take_damage_detailed(amount).actual
+    }
+
+    pub fn take_damage_detailed(&mut self, amount: i32) -> DamageResolution {
         let mut final_damage = amount;
 
         // Vulnerable: +50% damage
@@ -253,7 +264,11 @@ impl Unit {
         let remaining = final_damage - blocked;
         self.hp -= remaining;
 
-        remaining // Return actual damage taken
+        DamageResolution {
+            requested: amount,
+            blocked,
+            actual: remaining,
+        }
     }
 
     pub fn add_block(&mut self, amount: i32) {

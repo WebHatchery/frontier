@@ -2,7 +2,7 @@
 
 use super::helpers::{clicked_down, combat_card_rect, end_turn_button_rect, retreat_button_rect};
 use super::{CombatState, MissionContext};
-use crate::combat::Card;
+use crate::combat::{Card, ResolutionDelta, Unit};
 use crate::kingdom::{PartyMemberState, TraumaType};
 use crate::state::{MissionState, ResultState, StateTransition};
 use macroquad::prelude::*;
@@ -175,7 +175,13 @@ impl CombatState {
         self.apply_card_turn_modifiers();
         self.hand.remove(card_idx);
         self.selected_card = None;
-        self.set_feedback(format!("{} played.", card_name));
+        let feedback = self
+            .resolver
+            .recent_resolutions
+            .last()
+            .map(ResolutionDelta::summary)
+            .unwrap_or_else(|| format!("{} played.", card_name));
+        self.set_feedback(feedback);
     }
 
     fn select_card(&mut self, idx: usize) {
@@ -313,6 +319,7 @@ impl CombatState {
     }
 
     fn end_turn(&mut self) {
+        self.resolver.clear_recent();
         let actor_name = self
             .players
             .get(self.current_player_idx)
@@ -320,24 +327,48 @@ impl CombatState {
             .unwrap_or_else(|| "Adventurer".to_string());
         let old_intent = self.enemy.intent.description();
 
-        // Current player status tick and block reset
+        // Current player status tick. Block protects the player from the
+        // enemy action and is cleared only after that action resolves.
         if let Some(player) = self.players.get_mut(self.current_player_idx) {
             player.tick_statuses();
-            player.block = 0;
         }
+
+        let enemy_before_action = self.enemy.clone();
+        let player_before_enemy = self
+            .players
+            .get(self.current_player_idx)
+            .cloned()
+            .unwrap_or_else(|| Unit::new_player("Adventurer", 1));
 
         // Enemy Action
         let (dmg, stress) = self.enemy.execute_intent();
         let enemy_acted = dmg > 0 || stress > 0;
+        let enemy_after_action = self.enemy.clone();
+        if enemy_after_action.block != enemy_before_action.block
+            || enemy_after_action.base_damage != enemy_before_action.base_damage
+            || enemy_after_action.statuses.len() != enemy_before_action.statuses.len()
+        {
+            self.resolver
+                .record_external(ResolutionDelta::from_snapshots(
+                    &self.enemy.name,
+                    &self.enemy.name,
+                    old_intent.clone(),
+                    &enemy_before_action,
+                    &enemy_after_action,
+                    0,
+                ));
+        }
 
         // Apply damage to current player
         let mut actual_damage = 0;
+        let mut blocked_damage = 0;
         if dmg > 0 {
             if let Some(player) = self.players.get_mut(self.current_player_idx) {
-                let actual = player.take_damage(dmg);
-                actual_damage = actual;
+                let resolution = player.take_damage_detailed(dmg);
+                actual_damage = resolution.actual;
+                blocked_damage = resolution.blocked;
                 if self.current_player_idx < self.damage_taken.len() {
-                    self.damage_taken[self.current_player_idx] += actual;
+                    self.damage_taken[self.current_player_idx] += actual_damage;
                 }
             }
         }
@@ -348,6 +379,21 @@ impl CombatState {
             self.resolver.apply_stress_to_player(player, base_stress);
             if self.current_player_idx < self.stress_gained.len() {
                 self.stress_gained[self.current_player_idx] += base_stress;
+            }
+        }
+
+        if let Some(player) = self.players.get_mut(self.current_player_idx) {
+            player.block = 0;
+            if actual_damage > 0 || base_stress > 0 || blocked_damage > 0 {
+                self.resolver
+                    .record_external(ResolutionDelta::from_snapshots(
+                        &self.enemy.name,
+                        &player.name,
+                        old_intent.clone(),
+                        &player_before_enemy,
+                        player,
+                        blocked_damage,
+                    ));
             }
         }
 

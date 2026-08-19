@@ -12,7 +12,7 @@
 pub mod cards;
 pub mod enemies;
 
-pub use enemies::random_enemy_for_region_and_difficulty;
+pub use enemies::{enemy_by_id_or_region, random_enemy_for_region_and_difficulty};
 // CardData and EnemyData are used internally
 
 /// Macro to load JSON from assets with WASM support

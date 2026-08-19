@@ -1,6 +1,27 @@
 //! Buildings - unlock options, not raw power
 
+use super::stats::KingdomStats;
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConstructionEvaluation {
+    pub cost_gold: i32,
+    pub cost_supplies: i32,
+}
+
+pub fn evaluate_construction(
+    building: &Building,
+    stats: &KingdomStats,
+) -> Option<ConstructionEvaluation> {
+    if building.built || stats.gold < building.cost_gold || stats.supplies < building.cost_supplies
+    {
+        return None;
+    }
+    Some(ConstructionEvaluation {
+        cost_gold: building.cost_gold,
+        cost_supplies: building.cost_supplies,
+    })
+}
 
 /// A building in the kingdom base
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -13,6 +34,9 @@ pub struct Building {
     pub cost_gold: i32,
     pub cost_supplies: i32,
 }
+
+#[cfg(test)]
+mod tests;
 
 impl Building {
     pub fn all_starter() -> Vec<Self> {

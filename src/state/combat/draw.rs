@@ -258,9 +258,13 @@ fn draw_report_panel(state: &CombatState, preview_idx: Option<usize>) {
 
     let mut y = 358.0;
     let mut drew_any = false;
-    for line in state.resolver.log.iter().rev().take(3).rev() {
-        draw_ui_text(line, 330.0, y, 15.0, muted_text_color());
+    for delta in state.resolver.recent_resolutions.iter().rev().take(3).rev() {
+        draw_ui_text(&delta.summary(), 330.0, y, 15.0, text_color());
         y += 22.0;
+        for status in delta.status_changes.iter().take(1) {
+            draw_ui_text(status, 350.0, y, 13.0, ready_color());
+            y += 18.0;
+        }
         drew_any = true;
     }
     if !drew_any {

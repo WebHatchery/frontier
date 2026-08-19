@@ -1,6 +1,6 @@
 //! Combat resolution - effects are validated and applied here
 
-use super::{CardEffect, Unit};
+use super::{CardEffect, ResolutionDelta, Unit};
 
 /// Turn-specific modifiers that reset at end of turn
 #[derive(Clone, Debug, Default)]
@@ -43,6 +43,8 @@ pub struct CombatResolver {
     pub log: Vec<String>,
     /// Turn-specific modifiers
     pub turn_mods: TurnModifiers,
+    /// Most recent effect deltas shown in the battle report.
+    pub recent_resolutions: Vec<ResolutionDelta>,
 }
 
 impl CombatResolver {
@@ -50,6 +52,7 @@ impl CombatResolver {
         Self {
             log: Vec::new(),
             turn_mods: TurnModifiers::default(),
+            recent_resolutions: Vec::new(),
         }
     }
 
@@ -71,7 +74,14 @@ impl CombatResolver {
     }
 
     /// Resolve an effect from player to target (or self)
-    pub fn resolve(&mut self, effect: &CardEffect, player: &mut Unit, target: &mut Unit) {
+    pub fn resolve(
+        &mut self,
+        effect: &CardEffect,
+        player: &mut Unit,
+        target: &mut Unit,
+    ) -> ResolutionDelta {
+        let player_before = player.clone();
+        let target_before = target.clone();
         match effect {
             CardEffect::Damage(amount) => {
                 let mut dmg = *amount;
@@ -218,7 +228,11 @@ impl CombatResolver {
             } => {
                 let status =
                     crate::kingdom::StatusEffect::new(effect_type.clone(), *duration, *value);
-                let who = if *target_self { player } else { target };
+                let who = if *target_self {
+                    &mut *player
+                } else {
+                    &mut *target
+                };
                 who.add_status(status);
                 self.log.push(format!(
                     "{} gains {:?} for {} turns",
@@ -238,6 +252,78 @@ impl CombatResolver {
                     .push(format!("{} cannot play attacks this turn", player.name));
             }
         }
+
+        let affects_player = matches!(
+            effect,
+            CardEffect::Block(_)
+                | CardEffect::SelfStress(_)
+                | CardEffect::ReduceStress(_)
+                | CardEffect::Heal(_)
+                | CardEffect::DrawCards(_)
+                | CardEffect::GainEnergy(_)
+                | CardEffect::GainEnergyNextTurn(_)
+                | CardEffect::ClearDebuffs
+                | CardEffect::StressResistance(_)
+                | CardEffect::DisableAttacks
+                | CardEffect::ApplyStatus {
+                    target_self: true,
+                    ..
+                }
+        );
+        let (before, after, target_name) = if affects_player {
+            (&player_before, &*player, player.name.as_str())
+        } else {
+            (&target_before, &*target, target.name.as_str())
+        };
+        let blocked_damage = (before.block - after.block).max(0);
+        let delta = ResolutionDelta::from_snapshots(
+            &player_before.name,
+            target_name,
+            effect_label(effect),
+            before,
+            after,
+            blocked_damage,
+        );
+        self.log.push(delta.summary());
+        self.record_resolution(delta.clone());
+        delta
+    }
+
+    pub fn record_external(&mut self, delta: ResolutionDelta) {
+        self.log.push(delta.summary());
+        self.record_resolution(delta);
+    }
+
+    pub fn clear_recent(&mut self) {
+        self.recent_resolutions.clear();
+    }
+
+    fn record_resolution(&mut self, delta: ResolutionDelta) {
+        self.recent_resolutions.push(delta);
+        if self.recent_resolutions.len() > 6 {
+            self.recent_resolutions.remove(0);
+        }
+    }
+}
+
+fn effect_label(effect: &CardEffect) -> &'static str {
+    match effect {
+        CardEffect::Damage(_) => "Damage",
+        CardEffect::Block(_) => "Block",
+        CardEffect::Stress(_) | CardEffect::SelfStress(_) => "Stress",
+        CardEffect::ReduceStress(_) => "Stress relief",
+        CardEffect::Heal(_) => "Heal",
+        CardEffect::DrawCards(_) => "Draw cards",
+        CardEffect::GainEnergy(_) | CardEffect::GainEnergyNextTurn(_) => "Energy",
+        CardEffect::ClearDebuffs => "Clear debuffs",
+        CardEffect::EnemyStress(_) => "Enemy stress",
+        CardEffect::DamageIfNoBlock { .. } => "Damage if unguarded",
+        CardEffect::DamageIfLowHp { .. } => "Damage at low HP",
+        CardEffect::DamageIfEnemyActed { .. } => "Punish enemy action",
+        CardEffect::DamageIfVulnerable { .. } => "Damage vulnerable target",
+        CardEffect::ApplyStatus { .. } => "Status",
+        CardEffect::StressResistance(_) => "Stress resistance",
+        CardEffect::DisableAttacks => "Disable attacks",
     }
 }
 
@@ -246,3 +332,6 @@ impl Default for CombatResolver {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests;

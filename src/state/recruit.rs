@@ -1,7 +1,9 @@
 //! Recruitment state - hire new adventurers
 
 use super::StateTransition;
-use crate::kingdom::{Adventurer, AdventurerClass, KingdomState, Roster};
+use crate::kingdom::{
+    evaluate_recruitment, recruit_cost, Adventurer, AdventurerClass, KingdomState, Roster,
+};
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::rng;
@@ -31,12 +33,7 @@ impl Recruit {
             crate::kingdom::Gender::Female
         };
 
-        let cost = match class {
-            AdventurerClass::Soldier => 50,
-            AdventurerClass::Scout => 40,
-            AdventurerClass::Healer => 60,
-            AdventurerClass::Mystic => 70,
-        };
+        let cost = recruit_cost(&class);
         let adventurer = Adventurer::new(name, class, gender);
         Self { adventurer, cost }
     }
@@ -139,7 +136,8 @@ impl RecruitState {
         let Some(recruit) = self.recruits.get(self.selected) else {
             return;
         };
-        if kingdom.stats.gold < recruit.cost {
+        let evaluation = evaluate_recruitment(kingdom.stats.gold, roster.count(), recruit.cost);
+        if !evaluation.can_hire {
             return;
         }
 
@@ -151,7 +149,12 @@ impl RecruitState {
         }
     }
 
-    pub fn draw(&self, kingdom: &KingdomState, textures: &HashMap<String, Texture2D>) {
+    pub fn draw(
+        &self,
+        kingdom: &KingdomState,
+        roster: &Roster,
+        textures: &HashMap<String, Texture2D>,
+    ) {
         draw_background(
             textures,
             BackgroundArt::Recruit,
@@ -284,6 +287,18 @@ impl RecruitState {
             );
         }
 
+        draw_ui_text(
+            &format!(
+                "Roster: {}/{}",
+                roster.count(),
+                crate::kingdom::MAX_ROSTER_SIZE
+            ),
+            20.0,
+            96.0,
+            16.0,
+            Color::from_rgba(164, 153, 130, 255),
+        );
+
         let (hire_x, hire_y, hire_w, hire_h) = hire_button_rect();
         draw_action_button(
             "Hire Selected",
@@ -291,7 +306,9 @@ impl RecruitState {
             hire_y,
             hire_w,
             hire_h,
-            !self.recruits.is_empty(),
+            self.recruits.get(self.selected).is_some_and(|recruit| {
+                evaluate_recruitment(kingdom.stats.gold, roster.count(), recruit.cost).can_hire
+            }),
         );
         let (back_x, back_y, back_w, back_h) = back_button_rect();
         draw_action_button("Back", back_x, back_y, back_w, back_h, true);

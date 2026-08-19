@@ -5,7 +5,7 @@ mod helpers;
 mod turn;
 
 use crate::combat::{Card, CombatResolver, Unit};
-use crate::data::random_enemy_for_region_and_difficulty;
+use crate::data::{enemy_by_id_or_region, random_enemy_for_region_and_difficulty};
 use crate::kingdom::PartyMemberState;
 use crate::missions::{MapNode, Mission};
 use macroquad::prelude::*;
@@ -97,6 +97,10 @@ impl CombatState {
 
     /// Create combat that returns to mission on victory, using party stats
     pub fn for_mission(context: MissionContext) -> Self {
+        Self::for_mission_with_enemy(context, None)
+    }
+
+    pub fn for_mission_with_enemy(context: MissionContext, enemy_id: Option<&str>) -> Self {
         // Create Unit for each party member
         let players: Vec<Unit> = context
             .party_members
@@ -131,10 +135,20 @@ impl CombatState {
             .collect();
 
         // Get random enemy based on mission region and difficulty.
-        let enemy = random_enemy_for_region_and_difficulty(
-            &context.mission.region_id,
-            context.mission.combat_difficulty(),
-        );
+        let enemy = enemy_id
+            .map(|id| {
+                enemy_by_id_or_region(
+                    id,
+                    &context.mission.region_id,
+                    context.mission.combat_difficulty(),
+                )
+            })
+            .unwrap_or_else(|| {
+                random_enemy_for_region_and_difficulty(
+                    &context.mission.region_id,
+                    context.mission.combat_difficulty(),
+                )
+            });
 
         Self {
             players,

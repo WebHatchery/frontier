@@ -62,6 +62,10 @@ async fn main() {
         game.update();
         game.draw();
 
+        if game.quit_requested {
+            break;
+        }
+
         next_frame().await;
     }
 }

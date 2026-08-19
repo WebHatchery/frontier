@@ -41,6 +41,38 @@ pub enum EventOutcome {
     Nothing,
 }
 
+/// Deterministic aggregate of all outcomes on one event choice.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EventOutcomeDelta {
+    pub stress: i32,
+    pub hp: i32,
+    pub supplies: i32,
+    pub knowledge: i32,
+    pub combat_enemy: Option<String>,
+    pub reveal_trait: bool,
+    pub skip_node: bool,
+}
+
+pub fn evaluate_choice(choice: &EventChoice) -> EventOutcomeDelta {
+    let mut delta = EventOutcomeDelta::default();
+    for outcome in &choice.outcomes {
+        match outcome {
+            EventOutcome::Stress(amount) => delta.stress += amount,
+            EventOutcome::Heal(amount) => delta.hp += amount,
+            EventOutcome::Supplies(amount) => delta.supplies += amount,
+            EventOutcome::Knowledge(amount) => delta.knowledge += amount,
+            EventOutcome::Combat(enemy_id) => delta.combat_enemy = Some(enemy_id.clone()),
+            EventOutcome::RevealTrait => {
+                delta.knowledge += 5;
+                delta.reveal_trait = true;
+            }
+            EventOutcome::SkipNode => delta.skip_node = true,
+            EventOutcome::Nothing => {}
+        }
+    }
+    delta
+}
+
 impl Event {
     /// First route event - The Twisted Path
     pub fn twisted_path() -> Self {
@@ -115,3 +147,6 @@ pub fn random_event(node: usize, _region_id: &str) -> Option<Event> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests;

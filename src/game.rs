@@ -14,6 +14,8 @@ const ASSET_PACK_PATH: &str = "assets.zip";
 
 /// Top-level game state enum - explicit state machine
 pub enum GameState {
+    /// Title screen and campaign entry point
+    Menu(MenuState),
     /// Kingdom base management
     Base(BaseState),
     /// Selecting a mission to embark on
@@ -43,25 +45,13 @@ pub struct Game {
     pub roster: Roster,
     pub message: Option<(String, f32)>, // (message, time remaining)
     pub textures: HashMap<String, Texture2D>,
+    pub quit_requested: bool,
 }
 
 impl Game {
     pub async fn new() -> Self {
-        // Try to load existing save
-        let (mut kingdom, roster) = if SaveData::exists(&SaveData::default_path()) {
-            match SaveData::load(&SaveData::default_path()) {
-                Ok(save) => {
-                    eprintln!("Loaded save file");
-                    (save.kingdom, save.roster)
-                }
-                Err(e) => {
-                    eprintln!("Failed to load save: {}", e);
-                    (KingdomState::default(), Roster::starter())
-                }
-            }
-        } else {
-            (KingdomState::default(), Roster::starter())
-        };
+        let mut kingdom = KingdomState::default();
+        let roster = Roster::starter();
         kingdom.ensure_current_buildings();
 
         let asset_pack = AssetPack::load(ASSET_PACK_PATH).await.ok();
@@ -174,11 +164,12 @@ impl Game {
         }
 
         Self {
-            state: GameState::default(),
+            state: GameState::Menu(MenuState::new()),
             kingdom,
             roster,
             message: None,
             textures,
+            quit_requested: false,
         }
     }
 
@@ -192,65 +183,49 @@ impl Game {
             }
         }
 
-        // Handle save/load only in base state
-        if matches!(self.state, GameState::Base(_)) {
-            if is_key_pressed(KeyCode::F5) {
-                self.save_game();
-            }
-            if is_key_pressed(KeyCode::F9) {
-                self.load_game();
-            }
-        }
-
-        match &mut self.state {
+        let mut event_delta = (0, 0);
+        let transition = match &mut self.state {
+            GameState::Menu(state) => state.update(),
             GameState::Base(state) => {
-                if let Some(transition) = state.update(&mut self.kingdom, &mut self.roster) {
-                    self.transition(transition);
+                if is_key_pressed(KeyCode::F5) {
+                    Some(StateTransition::SaveGame)
+                } else if is_key_pressed(KeyCode::F9) {
+                    Some(StateTransition::LoadGame)
+                } else {
+                    state.update(&mut self.kingdom, &mut self.roster)
                 }
             }
-            GameState::MissionSelect(state) => {
-                if let Some(transition) = state.update(&self.roster, &self.kingdom) {
-                    self.transition(transition);
-                }
-            }
-            GameState::Mission(state) => {
-                if let Some(transition) = state.update() {
-                    self.transition(transition);
-                }
-            }
-            GameState::Combat(state) => {
-                if let Some(transition) = state.update() {
-                    self.transition(transition);
-                }
-            }
-            GameState::Results(state) => {
-                if let Some(transition) = state.update(&mut self.kingdom, &mut self.roster) {
-                    self.transition(transition);
-                }
-            }
+            GameState::MissionSelect(state) => state.update(&self.roster, &self.kingdom),
+            GameState::Mission(state) => state.update(),
+            GameState::Combat(state) => state.update(),
+            GameState::Results(state) => state.update(&mut self.kingdom, &mut self.roster),
             GameState::Event(state) => {
-                if let Some(transition) = state.update() {
-                    self.transition(transition);
+                let transition = state.update();
+                if transition.is_some() {
+                    event_delta = (state.supplies_change, state.knowledge_change);
                 }
+                transition
             }
-            GameState::Recruit(state) => {
-                if let Some(transition) = state.update(&mut self.kingdom, &mut self.roster) {
-                    self.transition(transition);
-                }
-            }
+            GameState::Recruit(state) => state.update(&mut self.kingdom, &mut self.roster),
+        };
+        self.kingdom.stats.supplies = (self.kingdom.stats.supplies + event_delta.0).max(0);
+        self.kingdom.stats.knowledge = (self.kingdom.stats.knowledge + event_delta.1).max(0);
+        if let Some(transition) = transition {
+            self.apply_transition(transition);
         }
     }
 
     /// Draw current state
     pub fn draw(&self) {
         match &self.state {
+            GameState::Menu(state) => state.draw(&self.textures),
             GameState::Base(state) => state.draw(&self.kingdom, &self.roster, &self.textures),
             GameState::MissionSelect(state) => state.draw(&self.kingdom, &self.textures),
             GameState::Mission(state) => state.draw(&self.textures),
             GameState::Combat(state) => state.draw(&self.textures),
             GameState::Results(state) => state.draw(&self.textures),
             GameState::Event(state) => state.draw(&self.textures),
-            GameState::Recruit(state) => state.draw(&self.kingdom, &self.textures),
+            GameState::Recruit(state) => state.draw(&self.kingdom, &self.roster, &self.textures),
         }
 
         // Draw message if any
@@ -264,9 +239,31 @@ impl Game {
     /// Seed a specific scene for the screenshot harness.
     pub fn begin_capture_scene(&mut self, scene: &str) {
         match scene {
+            "menu" => self.state = GameState::Menu(MenuState::default()),
             "recruit" => self.state = GameState::Recruit(RecruitState::new()),
             "mission" => self.state = GameState::Mission(MissionState::default()),
-            "combat" => self.state = GameState::Combat(CombatState::default()),
+            "combat" => {
+                let mut combat = CombatState::default();
+                combat.enemy.block = 2;
+                let damage = crate::combat::CardEffect::Damage(6);
+                let status = crate::combat::CardEffect::ApplyStatus {
+                    effect_type: crate::kingdom::StatusType::Vulnerable,
+                    duration: 2,
+                    value: 0,
+                    target_self: false,
+                };
+                let (resolver, enemy, players) =
+                    (&mut combat.resolver, &mut combat.enemy, &mut combat.players);
+                let player = &mut players[0];
+                resolver.resolve(&damage, player, enemy);
+                resolver.resolve(&status, player, enemy);
+                combat.feedback = combat
+                    .resolver
+                    .recent_resolutions
+                    .last()
+                    .map(|delta| (delta.summary(), 2.0));
+                self.state = GameState::Combat(combat);
+            }
             "event" => {
                 self.state = GameState::Event(EventState::new(
                     crate::missions::events::Event::ancient_marker(),
@@ -307,7 +304,41 @@ impl Game {
             StateTransition::ToResults(results) => GameState::Results(results),
             StateTransition::ToEvent(event) => GameState::Event(event),
             StateTransition::ToRecruit => GameState::Recruit(RecruitState::new()),
+            StateTransition::StartNewGame
+            | StateTransition::ContinueGame
+            | StateTransition::SaveGame
+            | StateTransition::LoadGame
+            | StateTransition::Quit => {
+                unreachable!("menu and persistence intents are applied before state transitions")
+            }
         };
+    }
+
+    fn apply_transition(&mut self, transition: StateTransition) {
+        match transition {
+            StateTransition::StartNewGame => {
+                self.kingdom = KingdomState::default();
+                self.roster = Roster::starter();
+                self.state = GameState::Base(BaseState::default());
+                self.message = Some(("A new frontier begins.".to_string(), 2.0));
+            }
+            StateTransition::ContinueGame => match self.load_saved_game() {
+                Ok(()) => self.state = GameState::Base(BaseState::default()),
+                Err(error) => {
+                    self.state = GameState::Menu(MenuState::with_notice(format!(
+                        "Continue failed: {}",
+                        error
+                    )));
+                }
+            },
+            StateTransition::SaveGame => self.save_game(),
+            StateTransition::LoadGame => self.load_game(),
+            StateTransition::Quit => {
+                self.quit_requested = true;
+                macroquad::miniquad::window::quit();
+            }
+            other => self.transition(other),
+        }
     }
 
     fn save_game(&mut self) {
@@ -328,15 +359,21 @@ impl Game {
     }
 
     fn load_game(&mut self) {
-        match SaveData::load(&SaveData::default_path()) {
-            Ok(save) => {
-                self.kingdom = save.kingdom;
-                self.roster = save.roster;
+        match self.load_saved_game() {
+            Ok(()) => {
                 self.message = Some(("Game Loaded!".to_string(), 2.0));
             }
             Err(e) => {
                 self.message = Some((format!("Load failed: {}", e), 3.0));
             }
         }
+    }
+
+    fn load_saved_game(&mut self) -> Result<(), String> {
+        let save = SaveData::load(&SaveData::default_path())?;
+        self.kingdom = save.kingdom;
+        self.kingdom.ensure_current_buildings();
+        self.roster = save.roster;
+        Ok(())
     }
 }
