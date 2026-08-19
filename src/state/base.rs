@@ -89,3 +89,16 @@ impl Default for BaseState {
         }
     }
 }
+
+impl BaseState {
+    pub fn for_party_formation(forming_party: Party) -> Self {
+        Self {
+            selected_building: None,
+            selected_adventurer: forming_party.leader_id().and_then(|_| Some(0)),
+            focus: FocusArea::PartyFormation,
+            active_tab: BaseTab::Roster,
+            viewing_deck: false,
+            forming_party,
+        }
+    }
+}

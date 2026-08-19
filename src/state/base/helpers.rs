@@ -114,6 +114,10 @@ pub(super) fn detail_back_button_rect() -> (f32, f32, f32, f32) {
     (screen_width() - 168.0, DETAIL_Y + 4.0, 126.0, 30.0)
 }
 
+pub(super) fn deck_close_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 178.0, 56.0, 126.0, 30.0)
+}
+
 pub(super) fn party_mission_button_rect() -> (f32, f32, f32, f32) {
     (48.0, MAIN_Y + 420.0, 190.0, 34.0)
 }

@@ -298,6 +298,9 @@ impl Game {
     fn transition(&mut self, transition: StateTransition) {
         self.state = match transition {
             StateTransition::ToBase => GameState::Base(BaseState::default()),
+            StateTransition::ToPartyFormation(party) => {
+                GameState::Base(BaseState::for_party_formation(party))
+            }
             StateTransition::ToMissionSelect(select) => GameState::MissionSelect(select),
             StateTransition::ToMission(mission) => GameState::Mission(mission),
             StateTransition::ToCombat(combat) => GameState::Combat(combat),

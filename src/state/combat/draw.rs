@@ -2,8 +2,9 @@
 
 use super::helpers::{
     border_color, candle_color, card_accent, card_preview, card_type, clicked_down,
-    combat_card_rect, danger_color, draw_wrapped_text, hovered_card_index, info_color,
-    intent_warning, muted_text_color, mystery_color, panel, ready_color, text_color, title_color,
+    combat_card_rect, danger_color, draw_wrapped_text, end_turn_button_rect, hovered_card_index,
+    info_color, intent_warning, muted_text_color, mystery_color, panel, ready_color,
+    retreat_button_rect, text_color, title_color,
 };
 use super::CombatState;
 use crate::combat::{Card, Unit};
@@ -57,14 +58,16 @@ impl CombatState {
             );
         }
 
-        let end_btn_x = screen_width() - 168.0;
-        let end_btn_y = screen_height() - 58.0;
-        draw_action_button("End Turn", end_btn_x, end_btn_y, 144.0, 38.0);
+        let (retreat_x, retreat_y, retreat_w, retreat_h) = retreat_button_rect();
+        draw_action_button("Retreat", retreat_x, retreat_y, retreat_w, retreat_h);
+
+        let (end_btn_x, end_btn_y, end_btn_w, end_btn_h) = end_turn_button_rect();
+        draw_action_button("End Turn", end_btn_x, end_btn_y, end_btn_w, end_btn_h);
         draw_ui_text(
-            "Shortcuts: 1-5 Select - Enter Play - E End Turn",
+            "Tap a card to select, tap again to play • Tap END TURN",
             24.0,
             screen_height() - 26.0,
-            14.0,
+            13.0,
             muted_text_color(),
         );
 

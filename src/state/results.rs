@@ -5,7 +5,7 @@ use crate::kingdom::{Injury, KingdomState, PartyMemberState, Roster};
 use crate::missions::Mission;
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::draw_ui_text;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 /// Post-mission results state
 pub struct ResultState {
@@ -170,7 +170,14 @@ impl ResultState {
         kingdom: &mut KingdomState,
         roster: &mut Roster,
     ) -> Option<StateTransition> {
-        if is_key_pressed(KeyCode::Enter) {
+        if is_key_pressed(KeyCode::Enter)
+            || crate::ui::was_clicked(
+                return_button_rect().0,
+                return_button_rect().1,
+                return_button_rect().2,
+                return_button_rect().3,
+            )
+        {
             // Apply consequences to kingdom
             if self.victory {
                 kingdom.stats.gold += self.reward_gold;
@@ -361,6 +368,15 @@ impl ResultState {
             WHITE,
         );
         draw_ui_text(title, 74.0, 60.0, 36.0, title_color);
+        let (return_x, return_y, return_w, return_h) = return_button_rect();
+        draw_action_button(
+            "Return to Kingdom",
+            return_x,
+            return_y,
+            return_w,
+            return_h,
+            true,
+        );
 
         let mut y = 120.0;
 
@@ -368,10 +384,10 @@ impl ResultState {
             draw_ui_text("The adventurer has perished.", 20.0, y, 24.0, RED);
             draw_ui_text("Their name will be remembered.", 20.0, y + 30.0, 20.0, GRAY);
             draw_ui_text(
-                "[ENTER] Return to Kingdom",
+                "Tap RETURN TO KINGDOM to continue",
                 20.0,
                 screen_height() - 40.0,
-                20.0,
+                18.0,
                 GREEN,
             );
             return;
@@ -432,11 +448,36 @@ impl ResultState {
         }
 
         draw_ui_text(
-            "[ENTER] Return to Kingdom",
+            "Tap RETURN TO KINGDOM to continue",
             20.0,
             screen_height() - 40.0,
-            20.0,
+            18.0,
             GREEN,
         );
     }
+}
+
+fn return_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 286.0, 20.0, 260.0, 38.0)
+}
+
+fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool) {
+    let hovered = crate::ui::is_mouse_over(x, y, w, h);
+    let fill = if !enabled {
+        Color::from_rgba(31, 27, 25, 218)
+    } else if hovered {
+        Color::from_rgba(111, 75, 32, 245)
+    } else {
+        Color::from_rgba(70, 49, 27, 238)
+    };
+    draw_rectangle(x, y, w, h, fill);
+    draw_rectangle_lines(x, y, w, h, 1.0, if enabled { GOLD } else { GRAY });
+    let text_width = measure_ui_text(label, None, 16, 1.0).width;
+    draw_ui_text(
+        label,
+        x + (w - text_width) / 2.0,
+        y + 25.0,
+        16.0,
+        if enabled { WHITE } else { GRAY },
+    );
 }

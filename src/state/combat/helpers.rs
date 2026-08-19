@@ -26,6 +26,14 @@ pub(super) fn combat_card_rect(i: usize, hand_len: usize) -> (f32, f32, f32, f32
     (x, screen_height() - 244.0, card_w, card_h)
 }
 
+pub(super) fn end_turn_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 340.0, screen_height() - 58.0, 144.0, 38.0)
+}
+
+pub(super) fn retreat_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 172.0, 18.0, 136.0, 36.0)
+}
+
 pub(super) fn hovered_card_index(hand: &[Card]) -> Option<usize> {
     for i in 0..hand.len().min(5) {
         let (x, y, w, h) = combat_card_rect(i, hand.len());

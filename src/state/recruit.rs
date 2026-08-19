@@ -5,7 +5,7 @@ use crate::kingdom::{Adventurer, AdventurerClass, KingdomState, Roster};
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
 use macroquad_toolkit::rng;
-use macroquad_toolkit::ui::draw_ui_text;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
 
 /// Names for random adventurers
@@ -97,26 +97,58 @@ impl RecruitState {
             }
         }
 
-        // Hire with Enter
-        if is_key_pressed(KeyCode::Enter) {
-            if let Some(recruit) = self.recruits.get(self.selected) {
-                if kingdom.stats.gold >= recruit.cost {
-                    kingdom.stats.gold -= recruit.cost;
-                    roster.add(recruit.adventurer.clone());
-                    self.recruits.remove(self.selected);
-                    if self.selected >= self.recruits.len() && self.selected > 0 {
-                        self.selected -= 1;
-                    }
+        for i in 0..self.recruits.len() {
+            let (x, y, w, h) = recruit_card_rect(i);
+            if crate::ui::was_clicked(x, y, w, h) {
+                if self.selected == i {
+                    self.hire_selected(kingdom, roster);
+                } else {
+                    self.selected = i;
                 }
             }
         }
 
-        // Escape to return
-        if is_key_pressed(KeyCode::Escape) {
+        if crate::ui::was_clicked(
+            hire_button_rect().0,
+            hire_button_rect().1,
+            hire_button_rect().2,
+            hire_button_rect().3,
+        ) {
+            self.hire_selected(kingdom, roster);
+        }
+
+        // Hire with Enter
+        if is_key_pressed(KeyCode::Enter) {
+            self.hire_selected(kingdom, roster);
+        }
+
+        if crate::ui::was_clicked(
+            back_button_rect().0,
+            back_button_rect().1,
+            back_button_rect().2,
+            back_button_rect().3,
+        ) || is_key_pressed(KeyCode::Escape)
+        {
             return Some(StateTransition::ToBase);
         }
 
         None
+    }
+
+    fn hire_selected(&mut self, kingdom: &mut KingdomState, roster: &mut Roster) {
+        let Some(recruit) = self.recruits.get(self.selected) else {
+            return;
+        };
+        if kingdom.stats.gold < recruit.cost {
+            return;
+        }
+
+        kingdom.stats.gold -= recruit.cost;
+        roster.add(recruit.adventurer.clone());
+        self.recruits.remove(self.selected);
+        if self.selected >= self.recruits.len() && self.selected > 0 {
+            self.selected -= 1;
+        }
     }
 
     pub fn draw(&self, kingdom: &KingdomState, textures: &HashMap<String, Texture2D>) {
@@ -146,7 +178,7 @@ impl RecruitState {
         let card_width = 500.0;
 
         for (i, recruit) in self.recruits.iter().enumerate() {
-            let y = start_y + (i as f32 * (card_height + 10.0));
+            let (_, y, _, _) = recruit_card_rect(i);
             let is_selected = i == self.selected;
             let can_afford = kingdom.stats.gold >= recruit.cost;
             // ... (rest of helper) ...
@@ -252,12 +284,56 @@ impl RecruitState {
             );
         }
 
+        let (hire_x, hire_y, hire_w, hire_h) = hire_button_rect();
+        draw_action_button(
+            "Hire Selected",
+            hire_x,
+            hire_y,
+            hire_w,
+            hire_h,
+            !self.recruits.is_empty(),
+        );
+        let (back_x, back_y, back_w, back_h) = back_button_rect();
+        draw_action_button("Back", back_x, back_y, back_w, back_h, true);
         draw_ui_text(
-            "[↑/↓] Select  [ENTER] Hire  [ESC] Back",
+            "Tap a recruit to select • Tap HIRE SELECTED to hire • Tap BACK to return",
             20.0,
             screen_height() - 40.0,
-            20.0,
+            16.0,
             Color::from_rgba(112, 143, 92, 255),
         );
     }
+}
+
+fn recruit_card_rect(i: usize) -> (f32, f32, f32, f32) {
+    (20.0, 120.0 + (i as f32 * 130.0), 500.0, 120.0)
+}
+
+fn hire_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 300.0, 22.0, 136.0, 36.0)
+}
+
+fn back_button_rect() -> (f32, f32, f32, f32) {
+    (screen_width() - 152.0, 22.0, 126.0, 36.0)
+}
+
+fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool) {
+    let hovered = crate::ui::is_mouse_over(x, y, w, h);
+    let fill = if !enabled {
+        Color::from_rgba(31, 27, 25, 218)
+    } else if hovered {
+        Color::from_rgba(111, 75, 32, 245)
+    } else {
+        Color::from_rgba(70, 49, 27, 238)
+    };
+    draw_rectangle(x, y, w, h, fill);
+    draw_rectangle_lines(x, y, w, h, 1.0, if enabled { GOLD } else { GRAY });
+    let text_width = measure_ui_text(label, None, 16, 1.0).width;
+    draw_ui_text(
+        label,
+        x + (w - text_width) / 2.0,
+        y + 24.0,
+        16.0,
+        if enabled { WHITE } else { GRAY },
+    );
 }

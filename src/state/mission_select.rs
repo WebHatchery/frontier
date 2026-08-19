@@ -125,10 +125,16 @@ impl MissionSelectState {
                 return Some(transition);
             }
         }
-        if crate::ui::was_clicked(958.0, 579.0, 126.0, 38.0)
-            || crate::ui::was_clicked(1100.0, 579.0, 126.0, 38.0)
-            || is_key_pressed(KeyCode::Escape)
-        {
+        if crate::ui::was_clicked(958.0, 579.0, 126.0, 38.0) {
+            return Some(StateTransition::ToPartyFormation(Party {
+                member_ids: self
+                    .party_members
+                    .iter()
+                    .map(|member| member.id.clone())
+                    .collect(),
+            }));
+        }
+        if crate::ui::was_clicked(1100.0, 579.0, 126.0, 38.0) || is_key_pressed(KeyCode::Escape) {
             return Some(StateTransition::ToBase);
         }
 
@@ -403,9 +409,9 @@ impl MissionSelectState {
             .map(|mission| !self.is_mission_unlocked(mission, kingdom))
             .unwrap_or(false);
         let line = if locked {
-            "Shortcuts: Up/Down Select - Locked missions explain requirements - Esc Back"
+            "Tap a mission to inspect requirements • Tap BACK to return"
         } else {
-            "Shortcuts: Up/Down Select - Enter Embark - Esc Back"
+            "Tap a mission to select • Tap EMBARK to depart • Tap BACK to return"
         };
         draw_ui_text(
             line,

@@ -1,8 +1,8 @@
 //! Input handling and state mutation for the base screen.
 
 use super::helpers::{
-    action_buttons, adventurer_row_hit_rect, detail_back_button_rect, facility_card_rect,
-    number_key, party_back_button_rect, party_mission_button_rect, tab_width,
+    action_buttons, adventurer_row_hit_rect, deck_close_button_rect, detail_back_button_rect,
+    facility_card_rect, number_key, party_back_button_rect, party_mission_button_rect, tab_width,
 };
 use super::{BaseState, BaseTab, FocusArea, ACTION_Y, MAIN_Y, SIDE_PAD};
 use crate::kingdom::{KingdomState, Party, Roster};
@@ -16,7 +16,14 @@ impl BaseState {
         roster: &mut Roster,
     ) -> Option<StateTransition> {
         if self.viewing_deck {
-            if is_key_pressed(KeyCode::Escape) {
+            if is_key_pressed(KeyCode::Escape)
+                || crate::ui::was_clicked(
+                    deck_close_button_rect().0,
+                    deck_close_button_rect().1,
+                    deck_close_button_rect().2,
+                    deck_close_button_rect().3,
+                )
+            {
                 self.viewing_deck = false;
             }
             return None;

@@ -1,6 +1,9 @@
 //! Adventurer - persistent characters that remember
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_ADVENTURER_ID: AtomicU64 = AtomicU64::new(0);
 
 /// An adventurer in the kingdom's roster
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -230,8 +233,9 @@ impl Adventurer {
 /// Simple UUID generator (timestamp-based for uniqueness)
 fn uuid_simple() -> String {
     let now = macroquad::time::get_time();
-    // Convert to something resembling nanos/unique string
-    format!("adv_{}", (now * 1_000_000.0) as u64)
+    let sequence = NEXT_ADVENTURER_ID.fetch_add(1, Ordering::Relaxed);
+    // The sequence suffix keeps characters created in the same frame distinct.
+    format!("adv_{}_{}", (now * 1_000_000.0) as u64, sequence)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

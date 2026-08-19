@@ -38,6 +38,17 @@
     "assets/images/enemies/corrupted_treant.png",
     "assets/images/enemies/forest_beast.png",
     "assets/images/enemies/shadow_wolf.png",
-    "assets/images/enemies/wild_boar.png"
+    "assets/images/enemies/wild_boar.png",
+    "assets/images/characters/soldier_male.png",
+    "assets/images/characters/soldier_female.png",
+    "assets/images/characters/scout_male.png",
+    "assets/images/characters/scout_female.png",
+    "assets/images/characters/healer_male.png",
+    "assets/images/characters/healer_female.png",
+    "assets/images/characters/mystic_male.png",
+    "assets/images/characters/mystic_female.png",
+    "assets/images/regions/dark_woods.png",
+    "assets/images/regions/ruined_outpost.png",
+    "assets/images/regions/sunken_valley.png"
   ]
 }

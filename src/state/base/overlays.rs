@@ -1,8 +1,8 @@
 //! Full-screen overlays: party formation and the deck viewer.
 
 use super::helpers::{
-    candle_color, card_accent, card_type, draw_wrapped_text, muted_text_color, panel,
-    party_back_button_rect, party_mission_button_rect, text_color,
+    candle_color, card_accent, card_type, deck_close_button_rect, draw_wrapped_text,
+    muted_text_color, panel, party_back_button_rect, party_mission_button_rect, text_color,
 };
 use super::panels::draw_action_button;
 use super::{BaseState, MAIN_Y, SIDE_PAD};
@@ -66,7 +66,7 @@ impl BaseState {
         }
 
         draw_ui_text(
-            "[Enter] Open Mission Board  [Esc] Cancel",
+            "Tap party members to add or remove them",
             48.0,
             screen_height() - 38.0,
             18.0,
@@ -115,13 +115,8 @@ impl BaseState {
             34.0,
             candle_color(),
         );
-        draw_ui_text(
-            "[Esc] Close",
-            screen_width() - 170.0,
-            86.0,
-            18.0,
-            muted_text_color(),
-        );
+        let (close_x, close_y, close_w, close_h) = deck_close_button_rect();
+        draw_action_button("Close", close_x, close_y, close_w, close_h, true);
 
         let class_name = format!("{:?}", adv.class);
         let deck = crate::combat::Card::load_deck_for_class(&class_name, &adv.deck_additions);

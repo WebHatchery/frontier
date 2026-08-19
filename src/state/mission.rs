@@ -6,7 +6,7 @@ use crate::kingdom::PartyMemberState;
 use crate::missions::{MapNode, Mission, NodeType};
 use crate::ui::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::draw_ui_text;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 /// Active mission/expedition state with branching paths
 pub struct MissionState {
@@ -171,7 +171,57 @@ impl MissionState {
         None
     }
 
+    fn confirm_selected_path(&mut self) -> Option<StateTransition> {
+        let next_node_id = *self.available_paths.get(self.selected_path)?;
+        self.current_node_id = next_node_id;
+        self.visited_nodes.push(next_node_id);
+        self.available_paths.clear();
+        self.selected_path = 0;
+        self.finish_current_node()
+    }
+
+    fn finish_current_node(&mut self) -> Option<StateTransition> {
+        if let Some(transition) = self.process_current_node() {
+            return Some(transition);
+        }
+
+        if self.is_complete() {
+            return Some(StateTransition::ToResults(
+                ResultState::victory_for_mission(&self.mission, &self.party_members),
+            ));
+        }
+
+        None
+    }
+
+    fn advance_route(&mut self) -> Option<StateTransition> {
+        let connections = self.current_node()?.connections.clone();
+        if connections.is_empty() {
+            return Some(StateTransition::ToResults(
+                ResultState::victory_for_mission(&self.mission, &self.party_members),
+            ));
+        }
+
+        if connections.len() == 1 {
+            self.current_node_id = connections[0];
+            self.visited_nodes.push(connections[0]);
+            return self.finish_current_node();
+        }
+
+        self.available_paths = connections;
+        self.selected_path = 0;
+        None
+    }
+
     pub fn update(&mut self) -> Option<StateTransition> {
+        let (advance_x, advance_y, advance_w, advance_h) = Self::advance_button_rect();
+        let (retreat_x, retreat_y, retreat_w, retreat_h) = Self::retreat_button_rect();
+        let retreat_clicked = crate::ui::was_clicked(retreat_x, retreat_y, retreat_w, retreat_h);
+
+        if retreat_clicked || is_key_pressed(KeyCode::Escape) {
+            return Some(StateTransition::ToBase);
+        }
+
         // Check if we have path options to choose from
         if !self.available_paths.is_empty() {
             // Path selection with arrow keys
@@ -206,24 +256,7 @@ impl MissionState {
                     if let Some((nx, ny, size)) = self.get_node_screen_pos(node_id) {
                         if mx >= nx && mx <= nx + size && my >= ny && my <= ny + size {
                             if self.selected_path == idx {
-                                // Already selected - confirm
-                                self.current_node_id = node_id;
-                                self.visited_nodes.push(node_id);
-                                self.available_paths.clear();
-                                self.selected_path = 0;
-
-                                if let Some(transition) = self.process_current_node() {
-                                    return Some(transition);
-                                }
-
-                                if self.is_complete() {
-                                    let results = ResultState::victory_for_mission(
-                                        &self.mission,
-                                        &self.party_members,
-                                    );
-                                    return Some(StateTransition::ToResults(results));
-                                }
-                                break;
+                                return self.confirm_selected_path();
                             } else {
                                 // Select this path
                                 self.selected_path = idx;
@@ -234,58 +267,21 @@ impl MissionState {
                 }
             }
 
-            // Confirm path with Space or Enter
-            if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::Enter) {
-                if let Some(&next_node_id) = self.available_paths.get(self.selected_path) {
-                    self.current_node_id = next_node_id;
-                    self.visited_nodes.push(next_node_id);
-                    self.available_paths.clear();
-                    self.selected_path = 0;
-
-                    // Process the new node
-                    if let Some(transition) = self.process_current_node() {
-                        return Some(transition);
-                    }
-
-                    // If mission complete after this node
-                    if self.is_complete() {
-                        let results =
-                            ResultState::victory_for_mission(&self.mission, &self.party_members);
-                        return Some(StateTransition::ToResults(results));
-                    }
-                }
+            // Confirm path with the visible button, Space, or Enter.
+            if crate::ui::was_clicked(advance_x, advance_y, advance_w, advance_h)
+                || is_key_pressed(KeyCode::Space)
+                || is_key_pressed(KeyCode::Enter)
+            {
+                return self.confirm_selected_path();
             }
         } else {
-            // Space to advance to next node(s)
-            if is_key_pressed(KeyCode::Space) {
-                if let Some(node) = self.current_node() {
-                    let connections = node.connections.clone();
-
-                    if connections.is_empty() {
-                        // Mission complete!
-                        let results =
-                            ResultState::victory_for_mission(&self.mission, &self.party_members);
-                        return Some(StateTransition::ToResults(results));
-                    } else if connections.len() == 1 {
-                        // Only one path - auto-advance
-                        self.current_node_id = connections[0];
-                        self.visited_nodes.push(connections[0]);
-
-                        if let Some(transition) = self.process_current_node() {
-                            return Some(transition);
-                        }
-                    } else {
-                        // Multiple paths - show choice
-                        self.available_paths = connections;
-                        self.selected_path = 0;
-                    }
-                }
+            // Advance with the visible button, Space, or Enter.
+            if crate::ui::was_clicked(advance_x, advance_y, advance_w, advance_h)
+                || is_key_pressed(KeyCode::Space)
+                || is_key_pressed(KeyCode::Enter)
+            {
+                return self.advance_route();
             }
-        }
-
-        // Escape to retreat
-        if is_key_pressed(KeyCode::Escape) {
-            return Some(StateTransition::ToBase);
         }
 
         None
@@ -321,6 +317,30 @@ impl MissionState {
             muted_text_color(),
         );
 
+        let (advance_x, advance_y, advance_w, advance_h) = Self::advance_button_rect();
+        let (retreat_x, retreat_y, retreat_w, retreat_h) = Self::retreat_button_rect();
+        let advance_label = if self.available_paths.is_empty() {
+            if self
+                .current_node()
+                .is_some_and(|node| node.connections.is_empty())
+            {
+                "Return"
+            } else {
+                "Advance"
+            }
+        } else {
+            "Confirm Path"
+        };
+        Self::draw_action_button(
+            advance_label,
+            advance_x,
+            advance_y,
+            advance_w,
+            advance_h,
+            true,
+        );
+        Self::draw_action_button("Retreat", retreat_x, retreat_y, retreat_w, retreat_h, true);
+
         draw_party_panel(&self.party_members, textures);
         draw_legend_panel();
         draw_route_panel();
@@ -331,7 +351,7 @@ impl MissionState {
         // Instructions
         if self.available_paths.is_empty() {
             draw_ui_text(
-                "Actions: [Space] Advance   [Esc] Retreat",
+                "Tap ADVANCE to continue • Tap RETREAT to leave",
                 24.0,
                 screen_height() - 24.0,
                 16.0,
@@ -339,13 +359,42 @@ impl MissionState {
             );
         } else {
             draw_ui_text(
-                "Actions: [Left/Right or 1-3] Choose Path   [Space] Confirm   [Esc] Retreat",
+                "Tap a route node to select, tap again to confirm • Tap RETREAT to leave",
                 24.0,
                 screen_height() - 24.0,
                 16.0,
                 candle_color(),
             );
         }
+    }
+
+    fn advance_button_rect() -> (f32, f32, f32, f32) {
+        (screen_width() - 320.0, 22.0, 136.0, 36.0)
+    }
+
+    fn retreat_button_rect() -> (f32, f32, f32, f32) {
+        (screen_width() - 172.0, 22.0, 136.0, 36.0)
+    }
+
+    fn draw_action_button(label: &str, x: f32, y: f32, w: f32, h: f32, enabled: bool) {
+        let hovered = crate::ui::is_mouse_over(x, y, w, h);
+        let fill = if !enabled {
+            Color::from_rgba(31, 27, 25, 218)
+        } else if hovered {
+            Color::from_rgba(111, 75, 32, 245)
+        } else {
+            Color::from_rgba(70, 49, 27, 238)
+        };
+        draw_rectangle(x, y, w, h, fill);
+        draw_rectangle_lines(x, y, w, h, 1.0, if enabled { GOLD } else { GRAY });
+        let text_width = measure_ui_text(label, None, 16, 1.0).width;
+        draw_ui_text(
+            label,
+            x + (w - text_width) / 2.0,
+            y + 25.0,
+            16.0,
+            if enabled { WHITE } else { GRAY },
+        );
     }
 
     /// Draw the branching map visualization

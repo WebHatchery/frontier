@@ -1,6 +1,6 @@
 //! Turn flow: input handling, card play, and end-of-turn resolution.
 
-use super::helpers::{clicked_down, combat_card_rect};
+use super::helpers::{clicked_down, combat_card_rect, end_turn_button_rect, retreat_button_rect};
 use super::{CombatState, MissionContext};
 use crate::combat::Card;
 use crate::kingdom::{PartyMemberState, TraumaType};
@@ -10,6 +10,13 @@ use macroquad::prelude::*;
 impl CombatState {
     pub fn update(&mut self) -> Option<StateTransition> {
         self.tick_feedback();
+
+        let (retreat_x, retreat_y, retreat_w, retreat_h) = retreat_button_rect();
+        if clicked_down(retreat_x, retreat_y, retreat_w, retreat_h)
+            || is_key_pressed(KeyCode::Escape)
+        {
+            return Some(StateTransition::ToBase);
+        }
 
         // Card selection with number keys OR mouse click
         for i in 0..self.hand.len().min(5) {
@@ -49,9 +56,8 @@ impl CombatState {
             self.end_turn();
         }
         // End Turn button bounds
-        let end_btn_x = screen_width() - 168.0;
-        let end_btn_y = screen_height() - 58.0;
-        if clicked_down(end_btn_x, end_btn_y, 144.0, 38.0) {
+        let (end_btn_x, end_btn_y, end_btn_w, end_btn_h) = end_turn_button_rect();
+        if clicked_down(end_btn_x, end_btn_y, end_btn_w, end_btn_h) {
             self.end_turn();
         }
 

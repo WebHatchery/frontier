@@ -18,9 +18,12 @@ pub use mission_select::MissionSelectState;
 pub use recruit::RecruitState;
 pub use results::ResultState;
 
+use crate::kingdom::Party;
+
 /// Explicit state transitions - no magic callbacks
 pub enum StateTransition {
     ToBase,
+    ToPartyFormation(Party),
     ToMissionSelect(MissionSelectState),
     ToMission(MissionState),
     ToCombat(CombatState),
