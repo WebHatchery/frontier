@@ -195,9 +195,16 @@ impl EventState {
             panel_y,
             panel_w,
             panel_h,
-            Color::from_rgba(30, 30, 40, 250),
+            Color::from_rgba(30, 23, 19, 246),
         );
-        draw_rectangle_lines(panel_x, panel_y, panel_w, panel_h, 2.0, WHITE);
+        draw_rectangle_lines(
+            panel_x,
+            panel_y,
+            panel_w,
+            panel_h,
+            2.0,
+            Color::from_rgba(153, 111, 62, 255),
+        );
 
         // Title
         draw_icon(
@@ -213,7 +220,7 @@ impl EventState {
             panel_x + 58.0,
             panel_y + 40.0,
             32.0,
-            YELLOW,
+            Color::from_rgba(228, 177, 84, 255),
         );
 
         // Description
@@ -233,7 +240,13 @@ impl EventState {
 
             // Rough estimate: 8 pixels per character at size 18
             if test_line.len() as f32 * 8.0 > max_width {
-                draw_ui_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
+                draw_ui_text(
+                    &line,
+                    panel_x + 20.0,
+                    y,
+                    18.0,
+                    Color::from_rgba(208, 195, 173, 255),
+                );
                 y += 25.0;
                 line = word.to_string();
             } else {
@@ -241,12 +254,24 @@ impl EventState {
             }
         }
         if !line.is_empty() {
-            draw_ui_text(&line, panel_x + 20.0, y, 18.0, LIGHTGRAY);
+            draw_ui_text(
+                &line,
+                panel_x + 20.0,
+                y,
+                18.0,
+                Color::from_rgba(208, 195, 173, 255),
+            );
         }
 
         // Choices
         let choices_y = panel_y + 200.0;
-        draw_ui_text("CHOOSE:", panel_x + 20.0, choices_y, 20.0, WHITE);
+        draw_ui_text(
+            "CHOOSE:",
+            panel_x + 20.0,
+            choices_y,
+            20.0,
+            Color::from_rgba(228, 177, 84, 255),
+        );
 
         for (i, choice) in self.event.choices.iter().enumerate() {
             let y = choices_y + 35.0 + (i as f32 * 50.0);
@@ -258,11 +283,11 @@ impl EventState {
 
             // Choice background with hover
             let bg_color = if is_selected {
-                Color::from_rgba(60, 80, 60, 255)
+                Color::from_rgba(76, 59, 32, 245)
             } else if is_hovered {
-                Color::from_rgba(50, 55, 60, 255)
+                Color::from_rgba(63, 52, 41, 240)
             } else {
-                Color::from_rgba(40, 40, 50, 255)
+                Color::from_rgba(27, 23, 21, 235)
             };
             draw_rectangle(panel_x + 20.0, choice_y, panel_w - 40.0, choice_h, bg_color);
 
@@ -273,7 +298,7 @@ impl EventState {
                     panel_w - 40.0,
                     choice_h,
                     2.0,
-                    GREEN,
+                    Color::from_rgba(125, 158, 101, 255),
                 );
             } else if is_hovered {
                 draw_rectangle_lines(
@@ -282,12 +307,16 @@ impl EventState {
                     panel_w - 40.0,
                     choice_h,
                     1.0,
-                    LIGHTGRAY,
+                    Color::from_rgba(153, 111, 62, 255),
                 );
             }
 
             // Choice text
-            let text_color = if is_selected { WHITE } else { GRAY };
+            let text_color = if is_selected {
+                Color::from_rgba(236, 224, 198, 255)
+            } else {
+                Color::from_rgba(164, 153, 130, 255)
+            };
             draw_ui_text(
                 &format!("[{}] {}", i + 1, choice.text),
                 panel_x + 30.0,
@@ -303,7 +332,7 @@ impl EventState {
             panel_x + 20.0,
             panel_y + panel_h - 30.0,
             16.0,
-            GREEN,
+            Color::from_rgba(125, 158, 101, 255),
         );
     }
 }

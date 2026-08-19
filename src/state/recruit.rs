@@ -125,14 +125,20 @@ impl RecruitState {
             BackgroundArt::Recruit,
             Color::from_rgba(5, 5, 8, 174),
         );
-        draw_ui_text("RECRUITMENT", 20.0, 40.0, 32.0, WHITE);
+        draw_ui_text(
+            "RECRUITMENT",
+            20.0,
+            40.0,
+            32.0,
+            Color::from_rgba(236, 224, 198, 255),
+        );
         draw_icon(textures, SpriteIcon::Gold, 18.0, 48.0, 26.0, WHITE);
         draw_ui_text(
             &format!("Gold: {}", kingdom.stats.gold),
             52.0,
             70.0,
             20.0,
-            YELLOW,
+            Color::from_rgba(214, 154, 62, 255),
         );
 
         let start_y = 120.0;
@@ -148,17 +154,21 @@ impl RecruitState {
             // Background
             let bg_color = if is_selected {
                 if can_afford {
-                    Color::from_rgba(60, 80, 60, 255)
+                    Color::from_rgba(76, 59, 32, 245)
                 } else {
-                    Color::from_rgba(80, 60, 60, 255)
+                    Color::from_rgba(69, 39, 33, 245)
                 }
             } else {
-                Color::from_rgba(40, 40, 50, 255)
+                Color::from_rgba(27, 23, 21, 232)
             };
             draw_rectangle(20.0, y, card_width, card_height, bg_color);
 
             if is_selected {
-                let border = if can_afford { GREEN } else { RED };
+                let border = if can_afford {
+                    Color::from_rgba(214, 154, 62, 255)
+                } else {
+                    Color::from_rgba(150, 55, 48, 255)
+                };
                 draw_rectangle_lines(20.0, y, card_width, card_height, 2.0, border);
             }
 
@@ -187,7 +197,11 @@ impl RecruitState {
             draw_icon(textures, class_icon, 450.0, y + 12.0, 48.0, WHITE);
 
             // Info
-            let text_color = if is_selected { WHITE } else { GRAY };
+            let text_color = if is_selected {
+                Color::from_rgba(236, 224, 198, 255)
+            } else {
+                Color::from_rgba(164, 153, 130, 255)
+            };
             draw_ui_text(
                 &format!("[{}] {}", i + 1, recruit.adventurer.name),
                 140.0,
@@ -203,18 +217,22 @@ impl RecruitState {
                 140.0,
                 y + 55.0,
                 18.0,
-                SKYBLUE,
+                Color::from_rgba(164, 153, 130, 255),
             );
             draw_ui_text(
                 &format!("HP: {}", recruit.adventurer.max_hp),
                 140.0,
                 y + 80.0,
                 16.0,
-                GREEN,
+                Color::from_rgba(112, 143, 92, 255),
             );
 
             // Cost
-            let cost_color = if can_afford { YELLOW } else { RED };
+            let cost_color = if can_afford {
+                Color::from_rgba(214, 154, 62, 255)
+            } else {
+                Color::from_rgba(150, 55, 48, 255)
+            };
             draw_ui_text(
                 &format!("Cost: {} Gold", recruit.cost),
                 350.0,
@@ -225,7 +243,13 @@ impl RecruitState {
         }
 
         if self.recruits.is_empty() {
-            draw_ui_text("No recruits available", 20.0, start_y + 30.0, 24.0, GRAY);
+            draw_ui_text(
+                "No recruits available",
+                20.0,
+                start_y + 30.0,
+                24.0,
+                Color::from_rgba(164, 153, 130, 255),
+            );
         }
 
         draw_ui_text(
@@ -233,7 +257,7 @@ impl RecruitState {
             20.0,
             screen_height() - 40.0,
             20.0,
-            GREEN,
+            Color::from_rgba(112, 143, 92, 255),
         );
     }
 }
