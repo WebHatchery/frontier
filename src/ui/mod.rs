@@ -3,7 +3,7 @@
 mod art;
 
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::draw_ui_text;
+use macroquad_toolkit::ui::{draw_ui_text, wrap_text};
 
 // Import toolkit utilities
 pub use art::{draw_background, draw_icon, BackgroundArt, SpriteIcon};
@@ -101,10 +101,7 @@ fn draw_tooltip(title: &str, body: &str) {
     let x = (mx + 18.0).min(screen_width() - width - 12.0).max(12.0);
     let mut y = (my + 18.0).min(screen_height() - 190.0).max(12.0);
 
-    let mut lines = Vec::new();
-    for paragraph in body.split('\n') {
-        wrap_text(paragraph, 42, &mut lines);
-    }
+    let lines = wrap_text(body, width - 24.0, 14.0);
 
     let height = 46.0 + (lines.len() as f32 * 18.0);
     if y + height > screen_height() - 12.0 {
@@ -119,30 +116,6 @@ fn draw_tooltip(title: &str, body: &str) {
     for line in lines {
         draw_ui_text(&line, x + 12.0, line_y, 14.0, LIGHTGRAY);
         line_y += 18.0;
-    }
-}
-
-fn wrap_text(text: &str, max_chars: usize, output: &mut Vec<String>) {
-    if text.trim().is_empty() {
-        output.push(String::new());
-        return;
-    }
-
-    let mut line = String::new();
-    for word in text.split_whitespace() {
-        if !line.is_empty() && line.len() + word.len() + 1 > max_chars {
-            output.push(line);
-            line = String::new();
-        }
-
-        if !line.is_empty() {
-            line.push(' ');
-        }
-        line.push_str(word);
-    }
-
-    if !line.is_empty() {
-        output.push(line);
     }
 }
 

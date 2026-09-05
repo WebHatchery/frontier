@@ -21,7 +21,11 @@ pub struct EnemyData {
 impl EnemyData {
     /// Load all enemies from the enemies.json asset file
     pub fn load_all() -> Result<Vec<EnemyData>, String> {
-        crate::load_asset!("enemies.json", Vec<EnemyData>)
+        macroquad_toolkit::data_loader::load_json_file_with_fallback_sync::<Vec<EnemyData>>(
+            "assets/enemies.json",
+            macroquad_toolkit::include_json_str!("../../assets/enemies.json"),
+            macroquad_toolkit::data_loader::JsonFallbackPolicy::ReadError,
+        )
     }
 
     /// Convert to a combat Unit

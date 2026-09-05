@@ -303,7 +303,11 @@ impl Mission {
 
 /// Load missions from the JSON asset file
 pub fn load_missions() -> Vec<Mission> {
-    match crate::load_asset!("missions.json", Vec<Mission>) {
+    match macroquad_toolkit::data_loader::load_json_file_with_fallback_sync::<Vec<Mission>>(
+        "assets/missions.json",
+        macroquad_toolkit::include_json_str!("../../assets/missions.json"),
+        macroquad_toolkit::data_loader::JsonFallbackPolicy::ReadError,
+    ) {
         Ok(missions) => missions,
         Err(e) => {
             eprintln!("Warning: Could not load missions.json: {}", e);

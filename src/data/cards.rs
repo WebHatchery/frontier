@@ -22,7 +22,11 @@ pub struct CardData {
 impl CardData {
     /// Load all cards from the cards.json asset file
     pub fn load_all() -> Result<Vec<CardData>, String> {
-        crate::load_asset!("cards.json", Vec<CardData>)
+        macroquad_toolkit::data_loader::load_json_file_with_fallback_sync::<Vec<CardData>>(
+            "assets/cards.json",
+            macroquad_toolkit::include_json_str!("../../assets/cards.json"),
+            macroquad_toolkit::data_loader::JsonFallbackPolicy::ReadError,
+        )
     }
 
     /// Check if this card can be used by the given class name

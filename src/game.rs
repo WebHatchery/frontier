@@ -66,45 +66,31 @@ impl Game {
                 .ok()
         }
 
-        // Helper to parse textures from JSON string
-        async fn parse_textures_from_json(
-            json_str: &str,
-            field_name: &str,
-            textures: &mut HashMap<String, Texture2D>,
-            asset_pack: Option<&AssetPack>,
-        ) {
-            if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(json_str) {
-                for item in items {
-                    if let Some(path) = item.get(field_name).and_then(|v| v.as_str()) {
-                        if let Some(tex) = load_tex(asset_pack, path).await {
-                            textures.insert(path.to_string(), tex);
-                        }
+        // The game owns image-field selection; the toolkit owns JSON loading.
+        use macroquad_toolkit::data_loader::{
+            load_json_file_with_fallback_sync, JsonFallbackPolicy,
+        };
+        let catalogues = [
+            load_json_file_with_fallback_sync::<Vec<serde_json::Value>>(
+                "assets/cards.json",
+                macroquad_toolkit::include_json_str!("../assets/cards.json"),
+                JsonFallbackPolicy::ReadError,
+            ),
+            load_json_file_with_fallback_sync::<Vec<serde_json::Value>>(
+                "assets/enemies.json",
+                macroquad_toolkit::include_json_str!("../assets/enemies.json"),
+                JsonFallbackPolicy::ReadError,
+            ),
+        ];
+        for items in catalogues.into_iter().flatten() {
+            for item in items {
+                if let Some(path) = item.get("image_path").and_then(|value| value.as_str()) {
+                    if let Some(texture) = load_tex(asset_pack.as_ref(), path).await {
+                        textures.insert(path.to_owned(), texture);
                     }
                 }
             }
         }
-
-        macro_rules! load_textures {
-            ($path:literal, $field:expr, $textures:expr) => {{
-                #[cfg(target_arch = "wasm32")]
-                let content = macroquad_toolkit::include_json_str!(concat!("../", $path));
-
-                #[cfg(not(target_arch = "wasm32"))]
-                let content = match std::fs::read_to_string($path) {
-                    Ok(c) => c,
-                    Err(_) => {
-                        macroquad_toolkit::include_json_str!(concat!("../", $path)).to_string()
-                    }
-                };
-
-                parse_textures_from_json(&content, $field, $textures, asset_pack.as_ref()).await;
-            }};
-        }
-
-        // Load all textures from JSON data files
-        load_textures!("assets/cards.json", "image_path", &mut textures);
-        load_textures!("assets/enemies.json", "image_path", &mut textures);
-
         // Character images (adventurers are generated, not from JSON)
         let char_images = [
             "soldier_male",

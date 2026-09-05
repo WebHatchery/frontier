@@ -2,7 +2,7 @@
 
 use crate::ui::{draw_background as draw_scene_background, BackgroundArt};
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
+use macroquad_toolkit::ui::draw_ui_text;
 use std::collections::HashMap;
 
 pub(super) const HEADER_H: f32 = 78.0;
@@ -58,26 +58,17 @@ pub(super) fn draw_wrapped_text(
     font_size: f32,
     color: Color,
 ) {
-    let mut line = String::new();
-    let mut line_y = y;
-    for word in text.split_whitespace() {
-        let candidate = if line.is_empty() {
-            word.to_string()
-        } else {
-            format!("{} {}", line, word)
-        };
-        if measure_ui_text(&candidate, None, font_size as u16, 1.0).width > max_width
-            && !line.is_empty()
-        {
-            draw_ui_text(&line, x, line_y, font_size, color);
-            line = word.to_string();
-            line_y += font_size + 5.0;
-        } else {
-            line = candidate;
-        }
-    }
-    if !line.is_empty() {
-        draw_ui_text(&line, x, line_y, font_size, color);
+    for (index, line) in macroquad_toolkit::ui::wrap_text(text, max_width, font_size)
+        .into_iter()
+        .enumerate()
+    {
+        draw_ui_text(
+            &line,
+            x,
+            y + index as f32 * (font_size + 5.0),
+            font_size,
+            color,
+        );
     }
 }
 

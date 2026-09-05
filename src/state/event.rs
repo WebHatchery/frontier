@@ -235,44 +235,19 @@ impl EventState {
 
         // Description
         let desc_y = panel_y + 80.0;
-        // Simple word wrap
-        let max_width = panel_w - 40.0;
-        let words: Vec<&str> = self.event.description.split_whitespace().collect();
-        let mut line = String::new();
-        let mut y = desc_y;
-
-        for word in words {
-            let test_line = if line.is_empty() {
-                word.to_string()
-            } else {
-                format!("{} {}", line, word)
-            };
-
-            // Rough estimate: 8 pixels per character at size 18
-            if test_line.len() as f32 * 8.0 > max_width {
-                draw_ui_text(
-                    &line,
-                    panel_x + 20.0,
-                    y,
-                    18.0,
-                    Color::from_rgba(208, 195, 173, 255),
-                );
-                y += 25.0;
-                line = word.to_string();
-            } else {
-                line = test_line;
-            }
-        }
-        if !line.is_empty() {
+        for (index, line) in
+            macroquad_toolkit::ui::wrap_text(&self.event.description, panel_w - 40.0, 18.0)
+                .into_iter()
+                .enumerate()
+        {
             draw_ui_text(
                 &line,
                 panel_x + 20.0,
-                y,
+                desc_y + index as f32 * 25.0,
                 18.0,
                 Color::from_rgba(208, 195, 173, 255),
             );
         }
-
         // Choices
         let choices_y = panel_y + 200.0;
         draw_ui_text(
