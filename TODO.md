@@ -1,36 +1,14 @@
 # TODO — Frontier Kingdom
 
-All tracked TODO items are complete. The title flow, tap-first persistence controls, mission redesign, combat feedback, deterministic evaluators, campaign fixtures, and verification captures are now part of the checked-in game.
-
-## Shell and navigation
-
-- [x] Add a title/menu state before the base screen.
-  - [x] Show Continue only when a save exists and load that save.
-  - [x] Start New Game with a fresh kingdom and starter roster.
-  - [x] Add a visible Exit control with the correct browser/native behavior.
-- [x] Replace the base screen's `Shortcuts:` footer with a compact optional-controls hint.
-- [x] Add visible Save and Load controls to the base screen so persistence does not require F5/F9.
-- [x] Remove the duplicate Roster and Facilities buttons from the base action bar.
-  - [x] Keep the top tab bar as the navigation control.
-  - [x] Reflow the remaining contextual actions and update their hit rectangles.
-
-## Screens
-
-- [x] Finish the mission-selection redesign before `src/state/mission_select.rs` reaches the 800-line limit.
-  - [x] Extract input and transition handling from the screen module.
-  - [x] Extract mission-card, briefing, and layout helpers into focused modules.
-  - [x] Verify the 1280×720 layout has no clipping or overlap and refresh its verification screenshot.
-- [x] Make combat resolution feedback explicit for damage, blocked damage, and status changes.
-  - [x] Record the resolved deltas instead of only showing selection and turn-start messages.
-  - [x] Render readable feedback for both player and enemy effects, including multi-party combat.
-
-## Testing
-
-- [x] Add gameplay test coverage in separate test modules.
-  - [x] Test mission selection and launch for locked and unlocked missions.
-  - [x] Test route-node resolution, successful completion, rewards, and failure results.
-- [x] Extract recruit eligibility and cost calculation into a pure evaluator and fixture low-resource and roster-capacity cases.
-- [x] Extract event outcome application into a deterministic evaluator and fixture each event choice, including combat-triggering choices.
-- [x] Extract combat reward and consequence calculation into a pure evaluator and fixture damage, stress, injury, death, and party cases.
-- [x] Add campaign fixtures for base upgrades, mission chains and unlocks, kingdom events, and result-screen progression.
-- [x] Refresh the affected `docs/verification/` screenshots so they match the current tap-first controls.
+- [ ] Migrate the 11 `src/**/tests.rs` suites and their test-only helpers into crate-root `tests/`; introduce `src/lib.rs` and have `main.rs` consume it. Preserve regression coverage through intentional public APIs, remove test declarations from `src/`, and review the five-case target per feature (§11).
+- [ ] Fix roster and party touch selection in `state/base/{draw,input,overlays,helpers}.rs`: the roster displays only five members, party selection stops at nine despite a 12-member capacity, and party hit rectangles use a different vertical offset from the rendered rows. Share layout rectangles and add visible paging or scrolling for every member (§7.5).
+- [ ] Make every drawn combat card selectable and playable: `state/combat/turn.rs` and `state/combat/helpers.rs` cap input/preview at five cards while `draw_extra_cards` permits seven. Share hand layout across rendering and input, keep the full hand onscreen, and cover six/seven-card hands (§7.5).
+- [ ] Add responsive layout or an explicit scaled virtual resolution for base panels and expedition maps. Replace fixed widths/coordinates that can overflow smaller browser canvases; verify matching hit targets and refresh affected screenshots directly in `docs/verification/` (§7.5).
+- [ ] Load and retain a typed, immutable content catalog at startup. Cards, enemies, and missions currently reload during gameplay, and `state/base/helpers.rs::deck_size` triggers card loading during drawing. Add semantic checks for duplicate IDs, references, and balance ranges, plus invalid-data tests; keep generic loading in the toolkit (§5.3).
+- [ ] Move hardcoded building definitions/prices, starting stats, recruitment balance, event content, and gameplay tuning into JSON under `assets/`; replace duplicated Rust fallback content with toolkit-supported loading/fallback behavior (§5.3).
+- [ ] Move player-facing labels, notices, instructions, and keyword definitions from `src/state/` and `src/ui/` into loaded JSON text resources (§5.3).
+- [ ] Separate input intents from campaign mutations in base actions, recruitment, and result application. Dispatch explicit actions through `Game` or dedicated handlers, reusing the existing pure evaluators; keep drawing read-only (§§5.1, 7.1–7.3).
+- [ ] Remove unused APIs and fields hidden by `#[allow(dead_code)]`, including unused UI wrappers and planned region helpers. Remove ignored save-path parameters, `default_path`, the no-op `ensure_save_directory`, and the unused mission-selection roster parameter; narrow and explain any remaining Clippy allowances (§§1.4, 10.2).
+- [ ] Surface loading failures currently discarded by `.ok()`, flattened `Result`s in `Game::new`, and ignored card/enemy errors. Include asset/data source and failure details while retaining deliberate recovery behavior (§6).
+- [ ] Split functions exceeding 100 lines, including `Game::new`, `CombatResolver::resolve`, and screen update/draw routines. Start with the 673-line `state/mission.rs`, extracting route layout/rendering and input responsibilities; migrate touched legacy `mod.rs` roots to named files and retain the empty-exception source gate (§§2.2–2.3, 4.1).
+- [ ] Correct `game_page.json` and README controls to name visible touch equivalents and actual shortcuts: combat uses Enter to play, not Space, and the advertised combat arrow selection is absent. Update README's obsolete TODO completion-record description and the source-gate comment in `tests/code_standards.rs` to say all physical lines count (§§2.2, 7.5).
